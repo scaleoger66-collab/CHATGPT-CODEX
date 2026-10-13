@@ -73,6 +73,9 @@ public class DesignSwitchTest {
             onView(withId(R.id.screen)).perform(swipeUp());
             try { onView(withId(R.id.polish_mic)).perform(click()); }
             catch (RuntimeException e) { screenshot("dialog-scroll-failure"); throw e; }
+            onView(withText("Polnisch verstehen · offline")).check(matches(isDisplayed()));
+            onView(withText("Herunterladen")).check(matches(isDisplayed()));
+            onView(withText("Später")).perform(click());
             onView(withText("Polski · Ausgangstext")).check(matches(withText("Polski · Ausgangstext")));
             onView(withId(R.id.german_mic)).perform(click());
             onView(withText("Deutsch · Ausgangstext")).check(matches(withText("Deutsch · Ausgangstext")));

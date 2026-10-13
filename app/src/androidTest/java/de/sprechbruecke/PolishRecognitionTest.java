@@ -32,6 +32,23 @@ public class PolishRecognitionTest {
                 String text = transcript.toString(); android.util.Log.i("PolishTest", voice + ": " + text);
                 assertTrue(voice + ": " + text, text.contains("jak") && text.contains("masz"));
             }
-        } finally { PolishModel.erase(stage); }
+        }
+        // Exercise the production microphone adapter, not just file decoding.
+        InstrumentationRegistry.getInstrumentation().getUiAutomation().grantRuntimePermission(context.getPackageName(), android.Manifest.permission.RECORD_AUDIO);
+        PolishRecognition microphone = new PolishRecognition();
+        java.util.concurrent.CountDownLatch ready = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicBoolean failed = new java.util.concurrent.atomic.AtomicBoolean();
+        try {
+            microphone.start(new File(stage, PolishModel.NAME), new PolishRecognition.Listener() {
+                public void ready() { ready.countDown(); }
+                public void partial(String text) {}
+                public void result(String text) {}
+                public void error() { failed.set(true); ready.countDown(); }
+            });
+            assertTrue("Microphone adapter starts", ready.await(20, java.util.concurrent.TimeUnit.SECONDS));
+            assertFalse("No microphone initialization error", failed.get());
+            microphone.cancel();
+            android.util.Log.i("PolishTest", "Production microphone adapter started and cancelled");
+        } finally { microphone.close(); PolishModel.erase(stage); }
     }
 }
