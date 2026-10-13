@@ -13,10 +13,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import static org.junit.Assert.*;
 
-/** Runs on cover-sized and unfolded-sized windows, with system font scale 1.0 and 2.0. */
+/** Runs on cover-sized and unfolded-sized windows, with system font scale 0.8, 1.0 and 2.0. */
 @RunWith(AndroidJUnit4.class)
 public class ResponsiveLayoutTest {
-    @Test public void bothDesignsRespectSystemTypeAndKeepControlsReachable() throws Exception {
+    @Test public void bothDesignsIgnoreSystemFontScaleAndKeepControlsReachable() throws Exception {
         Context context = ApplicationProvider.getApplicationContext();
         for (String design : new String[]{"DIALOG", "NIGHT"}) {
             context.getSharedPreferences("appearance", Context.MODE_PRIVATE).edit().clear()
@@ -36,22 +36,24 @@ public class ResponsiveLayoutTest {
                     int width = a.getResources().getConfiguration().screenWidthDp;
                     float scale = a.getResources().getConfiguration().fontScale;
                     TextView output = a.findViewById(R.id.output_text);
-                    float factor = Math.max(.94f, Math.min(1.08f, width / 380f));
-                    float expected = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 22 * factor, a.getResources().getDisplayMetrics());
-                    assertEquals("System SP scaling must be retained", expected, output.getTextSize(), .5f);
+                    assertEquals("Activity and dialogs use app font scale", 1f, scale, .001f);
+                    float expected = 24 * density;
+                    assertEquals("Translation size is fixed across system font settings", expected, output.getTextSize(), .5f);
+                    assertEquals("Readable tab labels", 16 * density, conversation.getTextSize(), .5f);
+                    android.widget.Button micButton = (android.widget.Button)a.findViewById(design.equals("DIALOG") ? R.id.german_mic : R.id.main_mic);
+                    assertEquals("Microphone symbol is enlarged", Math.round(40 * density), micButton.getCompoundDrawables()[1].getBounds().width());
                     assertTrue("Text must not be vertically clipped", output.getLayout().getHeight() <= output.getHeight() - output.getCompoundPaddingTop() - output.getCompoundPaddingBottom());
                     assertTrue(a.findViewById(R.id.settings).getGlobalVisibleRect(new Rect()));
                     View mic = a.findViewById(design.equals("DIALOG") ? R.id.german_mic : R.id.main_mic);
                     assertTrue(mic.getWidth() >= 48 * density);
                     assertTrue(mic.getHeight() >= 48 * density);
-                    if (scale <= 1.1f) {
-                        assertEquals("Normal type uses circular microphones", mic.getWidth(), mic.getHeight());
-                        Rect visible = new Rect();
-                        assertTrue("Primary controls visible without scrolling at normal font size", mic.getGlobalVisibleRect(visible));
-                        assertEquals(mic.getHeight(), visible.height());
-                    }
+                    assertEquals("App type keeps circular microphones", mic.getWidth(), mic.getHeight());
                     checkBounds(root, root.getWidth());
                 });
+                androidx.test.espresso.Espresso.onView(androidx.test.espresso.matcher.ViewMatchers.withId(design.equals("DIALOG") ? R.id.german_mic : R.id.main_mic))
+                    .perform(androidx.test.espresso.action.ViewActions.scrollTo())
+                    .check(androidx.test.espresso.assertion.ViewAssertions.matches(androidx.test.espresso.matcher.ViewMatchers.isCompletelyDisplayed()));
+                androidx.test.espresso.Espresso.onView(androidx.test.espresso.matcher.ViewMatchers.withId(R.id.screen)).perform(androidx.test.espresso.action.ViewActions.swipeDown(), androidx.test.espresso.action.ViewActions.swipeDown());
                 String suffix = context.getResources().getConfiguration().screenWidthDp + "-font-" + context.getResources().getConfiguration().fontScale;
                 DesignSwitchTest.captureScreenshot("responsive-" + design + "-" + suffix);
             }

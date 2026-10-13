@@ -1,3 +1,13 @@
+# Sprechbrücke 0.7 · feste App-Schriftgrößen
+
+Größere Schrift und Symbole, unabhängig von der Android-Systemschrift (80 %, 100 %, 200 %). Die verfügbare Fensterauflösung wird ausgelesen und über die Displaydichte in logische Größen umgerechnet. Dadurch bleiben Beschriftungen auf unterschiedlich dichten Smartphones vergleichbar groß. Das aufgeklappte Display ändert das Layout, nicht die Schriftgröße. Einstellungen und App-Dialoge verwenden ebenfalls Schriftfaktor 1.
+
+Neue Größen: Beschriftungen 16 dp, Hinweise 14 dp, Übersetzung 24 dp; Mikrofon-Symbol 40 dp, Reiter und Zeilensymbole 24 dp. Schmale Fenster bleiben scrollbar. Android-eigene Berechtigungsdialoge und die eigenständige Stimmen-App werden vom jeweiligen System bzw. ihrer eigenen App dargestellt.
+
+Die bisherige Anpassung an die Systemschrift wird auf ausdrücklichen Nutzerwunsch ersetzt. CI prüft beide Designs bei Systemfaktor 0,8, 1,0 und 2,0 auf schmalem und breitem Display.
+
+## Vorherige Version
+
 # Sprechbrücke 0.6 · Deutsch ↔ Polski
 
 Android-App für Offline-Textübersetzung, Gespräch und Live-Übersetzung in Sprachabschnitten. Für Galaxy Z Fold 7 entwickelt; Mindestversion Android 12.
@@ -36,7 +46,7 @@ Download und ZIP-Entpacken sind begrenzt, gegen Pfadmanipulation geschützt und 
 - Text-, Gesprächs- und Live-Modus; Text bis 5.000 Zeichen, Sitzungsverlauf ohne dauerhafte Speicherung.
 - Live verarbeitet Sprachabschnitte bis 30 Sekunden bei polnischer Aufnahme und pausiert während der Übersetzung. Aufnahme stoppt beim Verlassen der App und vor dem Vorlesen.
 - Design 2 „Nacht & Fokus“ und Design 3 „Dialog & Nähe“ unter Einstellungen umschaltbar, mit passenden Bedienelementen und gespeichertem Design.
-- Android-`sp` einschließlich nichtlinearer Systemschriftvergrößerung; Displaydichte und Fensterbreite bestimmen Layout und Abstände. Ab 680 dp bei ausreichendem Platz zwei Textkarten nebeneinander. Sehr große Schrift erhält wachsende/gestapelte Bedienelemente und Scrollbarkeit.
+- Feste dichteunabhängige App-Schriftgrößen ohne System-Schriftvergrößerung. Displaydichte und Fensterbreite bestimmen Layout und Abstände; ab 680 dp zwei Textkarten nebeneinander, auf schmalen Fenstern Scrollbarkeit.
 - Modellinitialisierung und polnische Audioverarbeitung laufen auf einem Hintergrund-Thread. Abgebrochene Sitzungen können keine veralteten Ergebnisse in die Oberfläche schreiben.
 
 Nach der Ersteinrichtung arbeiten Textübersetzung, polnische Erkennung und installierte Piper-Stimmen offline. Die deutsche Erkennung hängt vom verfügbaren Android-On-Device-Paket ab. Übersetzungs- und Erkennungsfehler sind möglich.

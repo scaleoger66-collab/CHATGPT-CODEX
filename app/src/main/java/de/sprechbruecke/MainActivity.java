@@ -64,6 +64,14 @@ public class MainActivity extends Activity implements RecognitionListener {
     private final OperationEpoch utterances = new OperationEpoch();
     private String lastTranslation = "";
 
+    @Override protected void attachBaseContext(android.content.Context base) {
+        super.attachBaseContext(base);
+        // Product requirement: app typography, including dialogs, ignores system font scaling.
+        android.content.res.Configuration override = new android.content.res.Configuration();
+        override.fontScale = 1f;
+        applyOverrideConfiguration(override);
+    }
+
     @Override public void onCreate(Bundle state) {
         appearance = getSharedPreferences("appearance", MODE_PRIVATE);
         presentation = new Presentation(appearance.getString("design", "DIALOG"), appearance.getString("mode", null));

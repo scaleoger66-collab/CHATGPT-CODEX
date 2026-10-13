@@ -1,9 +1,11 @@
-Update 0.6: Bei bereits installierter App nur Sprechbruecke-v0.6-debug.apk aktualisieren. Nicht deinstallieren. Die drei Vorlesestimmen bleiben erhalten.
+Version 0.7: Größere Schrift und Symbole. Die System-Schriftvergrößerung wird innerhalb von Sprechbrücke einschließlich Einstellungen ignoriert. Die Bildschirm-Pixeldichte bestimmt die Umrechnung der festen App-Größen; Displaybreite bestimmt das Layout.
+
+Update 0.7: Bei bereits installierter App nur Sprechbruecke-v0.7-debug.apk aktualisieren. Nicht deinstallieren. Die drei Vorlesestimmen bleiben erhalten.
 Danach Einstellungen → Mikrofon: Polnisch offline einrichten → Herunterladen (53 MB). Alternativ Mów po polsku antippen. Für diesen einmaligen Download Internet einschalten und die App geöffnet lassen. Anschließend erneut Mów po polsku antippen.
 
-Sprechbrücke 0.6 + Sprechbrücke Stimmen 0.2
+Sprechbrücke 0.7 + Sprechbrücke Stimmen 0.2
 
-1. Beide APKs installieren: Sprechbruecke-v0.6-debug.apk und Sprechbruecke-Stimmen-v0.2.apk.
+1. Beide APKs installieren: Sprechbruecke-v0.7-debug.apk und Sprechbruecke-Stimmen-v0.2.apk.
 2. Sprechbrücke öffnen → Stimme & Hörprobe → Stimmen herunterladen / verwalten.
 3. Im Stimmen-Modul „Alle drei Stimmen herunterladen“ wählen (ca. 250 MB). Währenddessen App geöffnet lassen. Einzelne Downloads sind ebenfalls möglich.
 4. Zurück zu Sprechbrücke → Stimme & Hörprobe → Polnische Stimme: Gosia oder Darkman auswählen.

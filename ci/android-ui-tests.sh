@@ -18,7 +18,7 @@ mkdir -p app/build/reports/display-matrix/baseline
 cp -R app/build/reports/androidTests app/build/reports/display-matrix/baseline/ 2>/dev/null || true
 # Device-sized windows, including Android accessibility font scaling. Always restore settings.
 trap 'adb shell wm size reset; adb shell wm density reset; adb shell settings put system font_scale 1.0' EXIT
-for configuration in '1080x2520 480 1.0' '1080x2520 480 2.0' '1968x2184 420 1.0' '1968x2184 420 2.0'; do
+for configuration in '1080x2520 480 0.8' '1080x2520 480 1.0' '1080x2520 480 2.0' '1968x2184 420 0.8' '1968x2184 420 1.0' '1968x2184 420 2.0'; do
   read -r display_size display_density font_scale <<< "$configuration"
   adb shell wm size "$display_size"
   adb shell wm density "$display_density"

@@ -69,7 +69,7 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/debug/app-debug.apk
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs voices/build/outputs/apk/debug/voices-debug.apk
           mkdir -p distribution
-          cp app/build/outputs/apk/debug/app-debug.apk distribution/Sprechbruecke-v0.6-debug.apk
+          cp app/build/outputs/apk/debug/app-debug.apk distribution/Sprechbruecke-v0.7-debug.apk
           cp voices/build/outputs/apk/debug/voices-debug.apk distribution/Sprechbruecke-Stimmen-v0.2.apk
           cp voices/src/main/assets/GPL-3.0.txt voices/src/main/assets/VOICE_NOTICES.txt distribution/
           cp INSTALLATION.txt distribution/
@@ -78,7 +78,7 @@ jobs:
       - name: Downloadable APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sprechbruecke-v0.6-Android
+          name: Sprechbruecke-v0.7-Android
           path: distribution/
           if-no-files-found: error
           retention-days: 14
