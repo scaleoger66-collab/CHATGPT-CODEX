@@ -19,7 +19,7 @@ import android.widget.*;
 final class TranslatorScreen {
     interface Actions {
         void settings(); void mode(Presentation.Mode mode); void swap(); void record(boolean german);
-        void translate(); void speak(); void voices(); void clear();
+        void translate(); void speak(); void speakSource(); void voices(); void clear();
     }
     final EditText input;
     final TextView output, status, history, voiceInfo;
@@ -28,9 +28,9 @@ final class TranslatorScreen {
     private final Activity activity;
     private final Presentation presentation;
     private final int background, surface, foreground, muted, accent, border;
-    private final TextView sourceLabel, targetLabel, from, to;
+    private final TextView sourceLabel, targetLabel, from, to, modelBadge;
     private final LinearLayout sourceCard, targetCard;
-    private final ImageButton play;
+    private final ImageButton play, sourcePlay;
     private final Button microphone, germanMic, polishMic;
     private final float typeFactor;
     private boolean germanSource;
@@ -70,9 +70,12 @@ final class TranslatorScreen {
         LinearLayout header = row();
         TextView title = text("Sprechbrücke", 24, foreground); title.setTypeface(Typeface.create("serif", Typeface.BOLD));
         header.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
+        modelBadge = text("● Modelle prüfen", 10, muted);
+        modelBadge.setGravity(Gravity.CENTER_VERTICAL);
+        if (fontScale <= 1.3f) header.addView(modelBadge, new LinearLayout.LayoutParams(dp(84), -2));
         ImageButton settings = icon(R.drawable.ic_settings, "Einstellungen", Color.TRANSPARENT, foreground, v -> actions.settings());
         settings.setId(R.id.settings); header.addView(settings, new LinearLayout.LayoutParams(dp(48), dp(48)));
-        root.addView(header); space(root, 8);
+        root.addView(header); if (fontScale > 1.3f) root.addView(modelBadge); space(root, 8);
 
         LinearLayout tabs = row(); tabs.setPadding(dp(2), dp(2), dp(2), dp(2)); tabs.setBackground(shape(dark ? surface : color("#F0EDE7"), 28));
         String[] tabLabels = {"Text", "Gespräch", "Live"};
@@ -113,7 +116,12 @@ final class TranslatorScreen {
         input.setBackgroundColor(Color.TRANSPARENT);
         input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
         input.setFilters(new InputFilter[]{new InputFilter.LengthFilter(5000)}); input.setContentDescription("Ausgangstext");
-        sourceCard.addView(input, new LinearLayout.LayoutParams(-1, -2));
+        LinearLayout original = row();
+        original.addView(input, new LinearLayout.LayoutParams(0, -2, 1));
+        sourcePlay = icon(R.drawable.ic_volume, "Ausgangstext vorlesen", color("#F6CFC4"), color("#AD493B"), v -> actions.speakSource());
+        if (!dark && presentation.mode == Presentation.Mode.CONVERSATION)
+            original.addView(sourcePlay, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        sourceCard.addView(original);
         if (presentation.mode == Presentation.Mode.TEXT) sourceCard.addView(text("Bis zu 5.000 Zeichen", 11, muted));
         targetCard = card(dark ? color("#153C57") : color("#DDF0EC"));
         targetLabel = text("", 12, muted); targetCard.addView(targetLabel);
@@ -178,10 +186,17 @@ final class TranslatorScreen {
         if (!presentation.dark()) {
             sourceCard.setBackground(shape(color(german ? "#FCE9E3" : "#DDF0EC"), 18));
             targetCard.setBackground(shape(color(german ? "#DDF0EC" : "#FCE9E3"), 18));
+            sourcePlay.setBackground(ripple(color(german ? "#F6CFC4" : "#BFE3DB"), 100));
+            sourcePlay.setImageTintList(ColorStateList.valueOf(color(german ? "#AD493B" : "#096C6D")));
             sourceLabel.setTextColor(color(german ? "#AD493B" : "#096C6D")); targetLabel.setTextColor(color(german ? "#096C6D" : "#AD493B"));
             play.setBackground(ripple(color(german ? "#BFE3DB" : "#F6CFC4"), 100));
             play.setImageTintList(ColorStateList.valueOf(color(german ? "#096C6D" : "#AD493B")));
         }
+    }
+    void setModelsReady(boolean ready) {
+        modelBadge.setText(ready ? "● Text offline" : "● Modelle fehlen");
+        modelBadge.setTextColor(ready ? color(presentation.dark() ? "#5DD5A0" : "#16744F") : muted);
+        modelBadge.setContentDescription(ready ? "Textübersetzung offline verfügbar" : "Übersetzungsmodelle noch nicht bereit");
     }
     void setRecording(boolean running) {
         microphone.setText(running ? "Stoppen" : "Mikrofon starten");
@@ -211,6 +226,8 @@ final class TranslatorScreen {
         v.setPadding(dp(8), dp(6), dp(8), dp(6)); v.setBackground(ripple(fill, 28)); v.setStateListAnimator(null); v.setOnClickListener(listener);
     }
     private Button button(String title, int fill, int tint, View.OnClickListener listener) { Button v = new Button(activity); styleButton(v, title, fill, tint, listener); return v; }
+    // This app uses platform Activity/Material themes on API 31+, not AppCompat.
+    @android.annotation.SuppressLint("AppCompatCustomView")
     private Button roundButton(String title, int fill, View.OnClickListener listener) {
         Button v = new Button(activity) {
             @Override protected void onMeasure(int widthSpec, int heightSpec) {

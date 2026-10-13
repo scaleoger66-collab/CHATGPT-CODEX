@@ -85,6 +85,7 @@ public class MainActivity extends Activity implements RecognitionListener {
             public void record(boolean german) { requestRecording(german); }
             public void translate() { stop(); MainActivity.this.translate(input.getText().toString().trim(), false); }
             public void speak() { stop(); MainActivity.this.speak(lastTranslation); }
+            public void speakSource() { stop(); MainActivity.this.speak(input.getText().toString(), Locale.forLanguageTag(germanSource ? "de-DE" : "pl-PL")); }
             public void voices() { showSpeechOptions(); }
             public void clear() {
                 stop(); history.setText(""); input.setText(""); output.setText(""); lastTranslation = "";
@@ -92,7 +93,7 @@ public class MainActivity extends Activity implements RecognitionListener {
             }
         });
         input = screen.input; output = screen.output; status = screen.status; history = screen.history;
-        voiceInfo = screen.voiceInfo; readAloud = screen.readAloud;
+        voiceInfo = screen.voiceInfo; readAloud = screen.readAloud; screen.setModelsReady(ready);
         input.setText(savedInput); output.setText(lastTranslation); history.setText(savedHistory); status.setText(savedStatus);
         readAloud.setChecked(appearance.getBoolean("readAloud", true));
         readAloud.setOnCheckedChangeListener((v, checked) -> appearance.edit().putBoolean("readAloud", checked).apply());
@@ -182,7 +183,8 @@ public class MainActivity extends Activity implements RecognitionListener {
             @Override public void onError(String id) { runOnUiThread(() -> { if (!destroyed && id.equals(Long.toString(utterances.current()))) status.setText("Sprachausgabe fehlgeschlagen. Offline-Sprachpaket prüfen."); }); }
         });
     }
-    private List<OfflineVoiceChoice> offlineVoices() {
+    private List<OfflineVoiceChoice> offlineVoices() { return offlineVoices(target()); }
+    private List<OfflineVoiceChoice> offlineVoices(Locale language) {
         List<OfflineVoiceChoice> all = new ArrayList<>();
         if (speechReady && speech.getVoices() != null) for (Voice voice : speech.getVoices()) {
             Set<String> features = voice.getFeatures();
@@ -190,7 +192,7 @@ public class MainActivity extends Activity implements RecognitionListener {
                 voice.getLocale().toLanguageTag(), voice.getQuality(), voice.isNetworkConnectionRequired(),
                 features == null || !features.contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED)));
         }
-        return OfflineVoiceChoice.available(all, target().getLanguage());
+        return OfflineVoiceChoice.available(all, language.getLanguage());
     }
     private String engineLabel() {
         if (speech != null) for (TextToSpeech.EngineInfo engine : speech.getEngines())
@@ -270,7 +272,7 @@ public class MainActivity extends Activity implements RecognitionListener {
     private String source() { return germanSource ? TranslateLanguage.GERMAN : TranslateLanguage.POLISH; }
     private Locale target() { return Locale.forLanguageTag(germanSource ? "pl-PL" : "de-DE"); }
     private void configureTranslator() {
-        generation++; ready = false;
+        generation++; ready = false; screen.setModelsReady(false);
         if (translator != null) translator.close();
         translator = Translation.getClient(new TranslatorOptions.Builder().setSourceLanguage(source())
             .setTargetLanguage(germanSource ? TranslateLanguage.POLISH : TranslateLanguage.GERMAN).build());
@@ -284,7 +286,7 @@ public class MainActivity extends Activity implements RecognitionListener {
                     de |= TranslateLanguage.GERMAN.equals(model.getLanguage());
                     pl |= TranslateLanguage.POLISH.equals(model.getLanguage());
                 }
-                if (de && pl) { ready = true; status.setText("Textübersetzung offline bereit."); beginRecording(); }
+                if (de && pl) { ready = true; screen.setModelsReady(true); status.setText("Textübersetzung offline bereit."); beginRecording(); }
                 else { pendingRecording = false; status.setText("Sprachmodelle fehlen. Bitte unter Einstellungen herunterladen."); }
             }).addOnFailureListener(e -> { if (valid(token)) { pendingRecording = false; status.setText("Sprachmodelle unter Einstellungen laden / prüfen."); } });
     }
@@ -293,7 +295,7 @@ public class MainActivity extends Activity implements RecognitionListener {
         final long operation = operations.advance();
         status.setText("Sprachmodelle werden geprüft oder heruntergeladen …");
         translator.downloadModelIfNeeded(new DownloadConditions.Builder().build())
-            .addOnSuccessListener(v -> { if (valid(token)) { ready = true; if (operations.accepts(operation)) status.setText("Textübersetzung offline bereit."); } })
+            .addOnSuccessListener(v -> { if (valid(token)) { ready = true; screen.setModelsReady(true); if (operations.accepts(operation)) status.setText("Textübersetzung offline bereit."); } })
             .addOnFailureListener(e -> { if (valid(token) && operations.accepts(operation)) status.setText("Modelle fehlen oder Download fehlgeschlagen. Für die Ersteinrichtung Internet einschalten."); });
     }
     private boolean valid(int token) { return !destroyed && token == generation; }
@@ -352,13 +354,14 @@ public class MainActivity extends Activity implements RecognitionListener {
         if (speech != null) speech.stop();
         if (screen != null) screen.setRecording(false);
     }
-    private void speak(String text) {
+    private void speak(String text) { speak(text, target()); }
+    private void speak(String text, Locale language) {
         if (text.isEmpty()) return;
         if (text.length() > TextToSpeech.getMaxSpeechInputLength()) {
             status.setText("Dieser Text ist zu lang zum Vorlesen. Bitte in kürzere Abschnitte aufteilen."); return;
         }
         if (!speechReady) { status.setText("Sprachausgabe noch nicht verfügbar."); return; }
-        OfflineVoiceChoice selected = OfflineVoiceChoice.select(offlineVoices(), voiceSettings.getString(voiceKey(), ""));
+        OfflineVoiceChoice selected = OfflineVoiceChoice.select(offlineVoices(language), voiceSettings.getString("voice:" + activeEngine + ":" + language.getLanguage(), ""));
         if (selected == null) { status.setText("Bitte unter ‚Stimme & Hörprobe‘ eine Offline-Stimme wählen oder Sprachpakete installieren."); return; }
         Voice voice = null;
         Set<Voice> available = speech.getVoices();
