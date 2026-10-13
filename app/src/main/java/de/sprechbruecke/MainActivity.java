@@ -16,7 +16,7 @@ import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
 import android.view.View;
-import android.view.WindowInsets;
+import android.view.ContextThemeWrapper;
 import android.graphics.Insets;
 import android.text.InputFilter;
 import android.widget.*;
@@ -41,8 +41,11 @@ public class MainActivity extends Activity implements RecognitionListener {
     private final OperationEpoch speechEngines = new OperationEpoch();
     private boolean refreshSpeechOnResume;
     private EditText input;
-    private Button microphone, direction;
-    private Switch live, readAloud;
+    private Switch readAloud;
+    private SharedPreferences appearance;
+    private Presentation presentation;
+    private TranslatorScreen screen;
+    private boolean pendingRecording;
     private boolean germanSource = true, ready, listening, running, destroyed, speechReady;
     private int generation;
     private final OperationEpoch operations = new OperationEpoch();
@@ -51,60 +54,101 @@ public class MainActivity extends Activity implements RecognitionListener {
     private String lastTranslation = "";
 
     @Override public void onCreate(Bundle state) {
+        appearance = getSharedPreferences("appearance", MODE_PRIVATE);
+        presentation = new Presentation(appearance.getString("design", "DIALOG"), appearance.getString("mode", null));
+        setTheme(presentation.dark() ? R.style.AppDark : R.style.AppLight);
         super.onCreate(state);
         voiceSettings = getSharedPreferences("voices", MODE_PRIVATE);
-        ScrollView scroll = new ScrollView(this);
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL); layout.setPadding(28, 36, 28, 28);
-        scroll.setOnApplyWindowInsetsListener((v, windowInsets) -> {
-            Insets insets = windowInsets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.ime());
-            scroll.setPadding(insets.left, insets.top, insets.right, insets.bottom);
-            return windowInsets;
-        });
-        scroll.addView(layout); setContentView(scroll);
-        TextView title = new TextView(this); title.setText("Sprechbrücke · Deutsch & Polski"); title.setTextSize(24); layout.addView(title);
-        status = label(layout, "Sprachmodelle einmalig herunterladen, danach offline übersetzen.");
-        direction = button(layout, "Deutsch → Polski", v -> {
-            stop(); germanSource = !germanSource;
-            direction.setText(germanSource ? "Deutsch → Polski" : "Polski → Deutsch");
-            lastTranslation = ""; output.setText(""); configureTranslator(); updateVoiceInfo();
-        });
-        button(layout, "Sprachmodelle laden / prüfen", v -> { stop(); download(); });
-        live = new Switch(this); live.setText("Live-Modus · fortlaufende Sprachabschnitte"); layout.addView(live);
-        live.setOnCheckedChangeListener((v, checked) -> stop());
-        readAloud = new Switch(this); readAloud.setText("Im Gesprächsmodus automatisch vorlesen"); readAloud.setChecked(true); layout.addView(readAloud);
-        microphone = button(layout, "Mikrofon starten", v -> {
-            if (running) { stop(); status.setText("Aufnahme beendet."); return; }
-            stop();
-            if (!ready) { status.setText("Bitte zuerst Sprachmodelle laden."); return; }
-            if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, 1); return;
-            }
-            running = true; listen();
-        });
-        label(layout, "Textübersetzung");
-        input = new EditText(this); input.setHint("Text eingeben … / Wpisz tekst …"); input.setMinLines(3); input.setGravity(48);
-        input.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE | android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-        input.setFilters(new InputFilter[]{new InputFilter.LengthFilter(5000)}); layout.addView(input);
-        button(layout, "Text übersetzen", v -> { stop(); translate(input.getText().toString().trim(), false); });
-        output = label(layout, ""); output.setTextSize(22); output.setTextIsSelectable(true);
-        button(layout, "Übersetzung vorlesen", v -> { stop(); speak(lastTranslation); });
-        voiceInfo = label(layout, "Sprachausgabe wird geladen …");
-        button(layout, "Stimme & Hörprobe", v -> showSpeechOptions());
-        label(layout, "Gesprächsverlauf · nur für diese Sitzung"); history = label(layout, ""); history.setTextIsSelectable(true);
-        button(layout, "Verlauf löschen", v -> { stop(); history.setText(""); input.setText(""); output.setText(""); lastTranslation = ""; status.setText("Verlauf gelöscht."); });
-        label(layout, "Offline nach Sprachpaket-Download. Live übersetzt einzelne Sprachabschnitte und pausiert dabei die Aufnahme. Warte auf ‚Höre zu‘, bevor du weitersprichst. Zum Antworten die Sprachrichtung wechseln. Text: maximal 5.000 Zeichen. Übersetzungen können Fehler enthalten.");
+        if (state != null) germanSource = state.getBoolean("germanSource", true);
+        buildScreen();
         if (state != null) {
-            germanSource = state.getBoolean("germanSource", true);
-            direction.setText(germanSource ? "Deutsch → Polski" : "Polski → Deutsch");
             input.setText(state.getString("input", ""));
             lastTranslation = state.getString("translation", ""); output.setText(lastTranslation);
             history.setText(state.getString("history", ""));
-            live.setChecked(state.getBoolean("live"));
-            readAloud.setChecked(state.getBoolean("readAloud", true));
         }
         configureTranslator();
         initializeSpeech();
+    }
+
+    private void buildScreen() {
+        String savedInput = input == null ? "" : input.getText().toString();
+        String savedHistory = history == null ? "" : history.getText().toString();
+        String savedStatus = status == null ? "Sprachmodelle werden geprüft …" : status.getText().toString();
+        screen = new TranslatorScreen(this, presentation, germanSource, new TranslatorScreen.Actions() {
+            public void settings() { showSettings(); }
+            public void mode(Presentation.Mode mode) { selectMode(mode); }
+            public void swap() { changeSource(!germanSource); }
+            public void record(boolean german) { requestRecording(german); }
+            public void translate() { stop(); MainActivity.this.translate(input.getText().toString().trim(), false); }
+            public void speak() { stop(); MainActivity.this.speak(lastTranslation); }
+            public void voices() { showSpeechOptions(); }
+            public void clear() {
+                stop(); history.setText(""); input.setText(""); output.setText(""); lastTranslation = "";
+                status.setText("Verlauf gelöscht.");
+            }
+        });
+        input = screen.input; output = screen.output; status = screen.status; history = screen.history;
+        voiceInfo = screen.voiceInfo; readAloud = screen.readAloud;
+        input.setText(savedInput); output.setText(lastTranslation); history.setText(savedHistory); status.setText(savedStatus);
+        readAloud.setChecked(appearance.getBoolean("readAloud", true));
+        readAloud.setOnCheckedChangeListener((v, checked) -> appearance.edit().putBoolean("readAloud", checked).apply());
+        updateVoiceInfo();
+    }
+    private AlertDialog.Builder dialog() {
+        return new AlertDialog.Builder(new ContextThemeWrapper(this, presentation.dark() ? R.style.AppDark : R.style.AppLight));
+    }
+    private void showSettings() {
+        stop(); status.setText("Aufnahme pausiert · Einstellungen");
+        dialog().setTitle("Einstellungen").setItems(new String[]{"Design & Bedienung", "Stimme & Hörprobe", "Sprachmodelle laden / prüfen"}, (d, which) -> {
+            if (which == 0) showDesignPicker();
+            if (which == 1) showSpeechOptions();
+            if (which == 2) download();
+        }).setNegativeButton("Schließen", null).show();
+    }
+    private void showDesignPicker() {
+        final int[] selected = {presentation.dark() ? 0 : 1};
+        dialog().setTitle("Design & Bedienung")
+            .setSingleChoiceItems(new String[]{"Design 2 · Nacht & Fokus\nDunkel, startet im Live-Modus", "Design 3 · Dialog & Nähe\nHell, zwei Sprechtasten"}, selected[0], (d, which) -> selected[0] = which)
+            .setPositiveButton("Übernehmen", (d, which) -> selectDesign(selected[0] == 0 ? Presentation.Design.NIGHT : Presentation.Design.DIALOG))
+            .setNegativeButton("Abbrechen", null).show();
+    }
+    void selectDesign(Presentation.Design design) {
+        stop(); presentation.chooseDesign(design); savePresentation();
+        setTheme(presentation.dark() ? R.style.AppDark : R.style.AppLight); buildScreen();
+        status.setText(presentation.dark() ? "Nacht & Fokus · Live-Modus bereit. Mikrofon zum Starten antippen."
+            : "Dialog & Nähe · Zum Sprechen Deutsch oder Polski wählen.");
+    }
+    void selectMode(Presentation.Mode mode) {
+        if (presentation.mode == mode) return;
+        stop(); presentation.mode = mode; savePresentation(); buildScreen();
+        status.setText(mode == Presentation.Mode.TEXT ? "Text eingeben und übersetzen."
+            : mode == Presentation.Mode.LIVE ? "Live-Modus bereit. Mikrofon zum Starten antippen." : "Gesprächsmodus bereit.");
+    }
+    private void savePresentation() {
+        appearance.edit().putString("design", presentation.design.name()).putString("mode", presentation.mode.name()).apply();
+    }
+    private void changeSource(boolean german) {
+        stop();
+        if (germanSource == german) return;
+        germanSource = german; screen.updateDirection(german); lastTranslation = ""; output.setText("");
+        configureTranslator(); updateVoiceInfo();
+    }
+    private void requestRecording(boolean german) {
+        if (running && germanSource == german) { stop(); status.setText("Aufnahme beendet."); return; }
+        stop();
+        boolean modelsWereReady = ready;
+        changeSource(german);
+        if (!modelsWereReady) { status.setText("Bitte unter Einstellungen zuerst die Sprachmodelle laden."); return; }
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, 1); return;
+        }
+        pendingRecording = true;
+        if (ready) beginRecording();
+        else status.setText("Sprachrichtung wird vorbereitet …");
+    }
+    private void beginRecording() {
+        if (!pendingRecording || destroyed) return;
+        pendingRecording = false; running = true; listen();
     }
 
     private String voiceKey() { return "voice:" + activeEngine + ":" + target().getLanguage(); }
@@ -159,7 +203,7 @@ public class MainActivity extends Activity implements RecognitionListener {
     }
     private void showSpeechOptions() {
         stop();
-        new AlertDialog.Builder(this).setTitle("Sprachausgabe · " + (germanSource ? "Polski" : "Deutsch"))
+        dialog().setTitle("Sprachausgabe · " + (germanSource ? "Polski" : "Deutsch"))
             .setItems(new String[]{"Anbieter wählen (Samsung / Google …)", "Offline-Stimme auswählen", "Hörprobe abspielen", "Sprechtempo", "Sprachpakete installieren", "Google-Sprachausgabe im Play Store"}, (dialog, which) -> {
                 if (which == 0) chooseEngine();
                 if (which == 1) chooseVoice();
@@ -173,7 +217,7 @@ public class MainActivity extends Activity implements RecognitionListener {
         List<TextToSpeech.EngineInfo> engines = speech == null ? new ArrayList<>() : speech.getEngines();
         String[] names = new String[engines.size() + 1]; names[0] = "Android-Standard";
         for (int i = 0; i < engines.size(); i++) names[i + 1] = engines.get(i).label;
-        new AlertDialog.Builder(this).setTitle("Anbieter auswählen").setItems(names, (dialog, which) -> {
+        dialog().setTitle("Anbieter auswählen").setItems(names, (dialog, which) -> {
             voiceSettings.edit().putString("engine", which == 0 ? "" : engines.get(which - 1).name).apply();
             initializeSpeech();
         }).setNegativeButton("Abbrechen", null).show();
@@ -185,7 +229,7 @@ public class MainActivity extends Activity implements RecognitionListener {
         String[] labels = new String[voices.size() + 1];
         labels[0] = "Automatisch · höchste gemeldete Qualität";
         for (int i = 0; i < voices.size(); i++) labels[i + 1] = voices.get(i).name + " · " + voices.get(i).tag;
-        new AlertDialog.Builder(this).setTitle("Offline-Stimme wählen & anhören").setItems(labels, (dialog, which) -> {
+        dialog().setTitle("Offline-Stimme wählen & anhören").setItems(labels, (dialog, which) -> {
             voiceSettings.edit().putString(voiceKey(), which == 0 ? "" : voices.get(which - 1).name).apply();
             updateVoiceInfo(); previewVoice();
         }).setNegativeButton("Abbrechen", null).show();
@@ -197,7 +241,7 @@ public class MainActivity extends Activity implements RecognitionListener {
     private void chooseRate() {
         String[] labels = {"Langsamer · 85 %", "Normal · 100 %", "Schneller · 110 %"};
         float[] rates = {0.85f, 1f, 1.1f};
-        new AlertDialog.Builder(this).setTitle("Sprechtempo").setItems(labels, (dialog, which) -> {
+        dialog().setTitle("Sprechtempo").setItems(labels, (dialog, which) -> {
             voiceSettings.edit().putFloat("rate", rates[which]).apply(); previewVoice();
         }).setNegativeButton("Abbrechen", null).show();
     }
@@ -219,12 +263,6 @@ public class MainActivity extends Activity implements RecognitionListener {
         catch (android.content.ActivityNotFoundException e) { refreshSpeechOnResume = false; status.setText("Bitte Google-Sprachausgabe im Play Store suchen."); }
     }
 
-    private TextView label(LinearLayout parent, String text) {
-        TextView view = new TextView(this); view.setText(text); view.setPadding(0, 18, 0, 18); parent.addView(view); return view;
-    }
-    private Button button(LinearLayout parent, String text, View.OnClickListener action) {
-        Button view = new Button(this); view.setText(text); view.setOnClickListener(action); parent.addView(view); return view;
-    }
     private String source() { return germanSource ? TranslateLanguage.GERMAN : TranslateLanguage.POLISH; }
     private Locale target() { return Locale.forLanguageTag(germanSource ? "pl-PL" : "de-DE"); }
     private void configureTranslator() {
@@ -242,8 +280,9 @@ public class MainActivity extends Activity implements RecognitionListener {
                     de |= TranslateLanguage.GERMAN.equals(model.getLanguage());
                     pl |= TranslateLanguage.POLISH.equals(model.getLanguage());
                 }
-                if (de && pl) { ready = true; status.setText("Textübersetzung offline bereit."); }
-            }).addOnFailureListener(e -> { if (valid(token)) status.setText("Sprachmodelle laden / prüfen antippen."); });
+                if (de && pl) { ready = true; status.setText("Textübersetzung offline bereit."); beginRecording(); }
+                else { pendingRecording = false; status.setText("Sprachmodelle fehlen. Bitte unter Einstellungen herunterladen."); }
+            }).addOnFailureListener(e -> { if (valid(token)) { pendingRecording = false; status.setText("Sprachmodelle unter Einstellungen laden / prüfen."); } });
     }
     private void download() {
         final int token = generation;
@@ -266,7 +305,7 @@ public class MainActivity extends Activity implements RecognitionListener {
             history.append((germanSource ? "DE: " : "PL: ") + text + "\n" + (germanSource ? "PL: " : "DE: ") + result + "\n\n");
             if (history.length() > 24000) history.setText(history.getText().subSequence(history.length() - 16000, history.length()));
             status.setText("Übersetzt.");
-            if (fromMicrophone && running && live.isChecked()) scheduleListen();
+            if (fromMicrophone && running && presentation.isLive()) scheduleListen();
             else if (fromMicrophone && running) { stop(); if (readAloud.isChecked()) speak(result); }
         }).addOnFailureListener(e -> { if (valid(token) && operations.accepts(operation)) { stop(); status.setText("Übersetzung fehlgeschlagen. Sprachmodelle prüfen."); } });
     }
@@ -287,7 +326,7 @@ public class MainActivity extends Activity implements RecognitionListener {
             @Override public void onError(int e) { if (current()) MainActivity.this.onError(e); }
             @Override public void onReadyForSpeech(Bundle b) { if (current()) status.setText("Höre zu …"); }
             @Override public void onBeginningOfSpeech() {}
-            @Override public void onRmsChanged(float v) {}
+            @Override public void onRmsChanged(float v) { if (current()) screen.level.setLevel(v); }
             @Override public void onBufferReceived(byte[] b) {}
             @Override public void onEndOfSpeech() { if (current()) status.setText("Sprachabschnitt wird erkannt …"); }
             @Override public void onEvent(int t, Bundle b) {}
@@ -297,17 +336,17 @@ public class MainActivity extends Activity implements RecognitionListener {
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, germanSource ? "de-DE" : "pl-PL");
         intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
         intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
-        listening = true; microphone.setText("Mikrofon stoppen"); status.setText("Mikrofon wird gestartet …");
+        listening = true; screen.setRecording(true); status.setText("Mikrofon wird gestartet …");
         try { recognizer.startListening(intent); }
         catch (SecurityException e) { stop(); status.setText("Mikrofonberechtigung fehlt."); }
     }
     private void scheduleListen() { handler.postDelayed(() -> { if (running && !listening) listen(); }, 350); }
     private void stop() {
-        running = false; listening = false; handler.removeCallbacksAndMessages(null);
+        running = false; listening = false; pendingRecording = false; handler.removeCallbacksAndMessages(null);
         operations.advance(); recordings.advance(); utterances.advance();
         if (recognizer != null) { recognizer.cancel(); recognizer.destroy(); recognizer = null; }
         if (speech != null) speech.stop();
-        if (microphone != null) microphone.setText("Mikrofon starten");
+        if (screen != null) screen.setRecording(false);
     }
     private void speak(String text) {
         if (text.isEmpty()) return;
@@ -332,7 +371,7 @@ public class MainActivity extends Activity implements RecognitionListener {
         recordings.advance();
         ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
         if (matches != null && !matches.isEmpty()) { input.setText(matches.get(0)); translate(matches.get(0), true); }
-        else if (live.isChecked()) scheduleListen(); else stop();
+        else if (presentation.isLive()) scheduleListen(); else stop();
     }
     @Override public void onPartialResults(Bundle results) {
         if (!running) return;
@@ -341,7 +380,7 @@ public class MainActivity extends Activity implements RecognitionListener {
     }
     @Override public void onError(int error) {
         listening = false; if (!running) return;
-        if (live.isChecked() && (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT)) { scheduleListen(); return; }
+        if (presentation.isLive() && (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT)) { scheduleListen(); return; }
         stop();
         if (error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED || error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE)
             status.setText("Offline-Sprachpaket fehlt oder wird nicht unterstützt. Bitte Deutsch/Polnisch in den Android-Spracheinstellungen prüfen.");
@@ -366,7 +405,7 @@ public class MainActivity extends Activity implements RecognitionListener {
         state.putBoolean("germanSource", germanSource);
         state.putString("input", input.getText().toString());
         state.putString("translation", lastTranslation); state.putString("history", history.getText().toString());
-        state.putBoolean("live", live.isChecked()); state.putBoolean("readAloud", readAloud.isChecked());
+
     }
     @Override protected void onPause() { super.onPause(); stop(); }
     @Override protected void onResume() {

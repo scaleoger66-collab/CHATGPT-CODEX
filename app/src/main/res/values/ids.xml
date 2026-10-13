@@ -1,0 +1,13 @@
+<resources>
+    <item name="settings" type="id" />
+    <item name="input_text" type="id" />
+    <item name="output_text" type="id" />
+    <item name="german_mic" type="id" />
+    <item name="polish_mic" type="id" />
+    <item name="main_mic" type="id" />
+    <item name="mode_text" type="id" />
+    <item name="mode_conversation" type="id" />
+    <item name="mode_live" type="id" />
+    <item name="screen" type="id" />
+    <item name="history_text" type="id" />
+</resources>

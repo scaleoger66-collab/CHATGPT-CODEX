@@ -1,6 +1,16 @@
-# Sprechbrücke – Android 0.2
+# Sprechbrücke – Android 0.3
 
 Native Android-App (Java), Android 12 oder neuer, Deutsch ↔ Polnisch.
+
+## Neu in 0.3: zwei Designs mit passender Bedienung
+
+Unter **Einstellungen (Zahnrad) → Design & Bedienung** zwischen **Design 2 · Nacht & Fokus** und **Design 3 · Dialog & Nähe** wechseln. Nacht & Fokus verwendet dunkle Karten, blaue Akzente und startet beim Designwechsel im Live-Modus. Dialog & Nähe verwendet helle Karten, Koralle/Teal und startet im Gesprächsmodus mit einer deutschen und einer polnischen Sprechtaste. Die Sprechtaste wählt automatisch die zugehörige Übersetzungsrichtung.
+
+In beiden Designs sind Text, Gespräch und Live über die Tabs erreichbar. Design und zuletzt gewählter Modus werden für den nächsten Start gespeichert. Ein Designwechsel beendet laufende Aufnahme und Sprachausgabe; Text, Übersetzung, Sitzungsverlauf und Stimmwahl bleiben dabei erhalten. Auf breiten Displays (ab 720 dp) stehen die Textkarten nebeneinander. Die Pegelanzeige verwendet die von Android gemeldete Mikrofonlautstärke und zeigt keine simulierte Aufnahme.
+
+Sprachmodelle werden jetzt unter **Einstellungen → Sprachmodelle laden / prüfen** verwaltet. Die Auswahl von Offline-Stimmen ist weiterhin über **Stimme & Hörprobe** verfügbar.
+
+Die Version wird mit Unit-Tests, Android Lint und UI-Tests auf einem Android-15-Emulator geprüft. Die tatsächliche Spracherkennung und Sprachqualität müssen weiterhin auf dem Fold 7 getestet werden.
 
 ## Neu in 0.2
 
