@@ -21,4 +21,4 @@ Copyright (c) 2026 Sprechbrücke contributors. Dieses eigenständige Sprachmodul
 
 ## Test
 
-`ci/piper-offline-test.sh` installiert die Test-APKs, überträgt die drei unveränderten Modellarchive, deaktiviert WLAN/Mobilfunk im Emulator und lässt die Produktionsroutine die Pakete prüfen und installieren. Danach erzeugt es mit jedem Modell eine WAV-Datei, prüft Audiosignal und Native-Abbruch sowie den Erhalt installierter Dateien nach abgebrochener Neuinstallation. Hörproben liegen im Build-Artefakt Android-test-reports unter piper/.
+`ci/piper-offline-test.sh` installiert die Test-APKs, überträgt die drei unveränderten Modellarchive, deaktiviert WLAN/Mobilfunk im Emulator und lässt die Produktionsroutine die Pakete prüfen und installieren. Danach erzeugt es mit jedem Modell eine WAV-Datei, prüft Audiosignal und Native-Abbruch sowie den Erhalt installierter Dateien nach abgebrochener Neuinstallation. Zusätzlich werden alle drei Stimmen über Androids TextToSpeech-Dienst ausgewählt und als WAV-Datei synthetisiert. Hörproben liegen im Build-Artefakt Android-test-reports unter app/build/reports/piper/.
