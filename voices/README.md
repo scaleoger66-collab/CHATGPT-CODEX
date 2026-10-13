@@ -22,3 +22,9 @@ Copyright (c) 2026 Sprechbrücke contributors. Dieses eigenständige Sprachmodul
 ## Test
 
 `ci/piper-offline-test.sh` installiert die Test-APKs, überträgt die drei unveränderten Modellarchive, deaktiviert WLAN/Mobilfunk im Emulator und lässt die Produktionsroutine die Pakete prüfen und installieren. Danach erzeugt es mit jedem Modell eine WAV-Datei, prüft Audiosignal und Native-Abbruch sowie den Erhalt installierter Dateien nach abgebrochener Neuinstallation. Zusätzlich werden alle drei Stimmen über Androids TextToSpeech-Dienst ausgewählt und als WAV-Datei synthetisiert. Hörproben liegen im Build-Artefakt Android-test-reports unter app/build/reports/piper/.
+
+## Startkorrektur in Version 0.2
+
+`TextToSpeechService.onCreate()` ruft die überschriebene Methode `onLoadLanguage()` synchron mit der konfigurierten Startsprache auf. `PiperModels` muss deshalb vor `super.onCreate()` bereitstehen. Der frühere Fehler war im englischen Emulator verborgen, weil nicht unterstützte Sprachen vor dem Modellzugriff abgewiesen wurden.
+
+`VoiceActivityTest` stellt im Emulator vorübergehend die dienstspezifische Android-TTS-Startsprache auf Deutsch beziehungsweise Polnisch und stellt die ursprüngliche Einstellung anschließend wieder her. Damit setzt Activity-Erstellung die Testsprache nicht unbemerkt zurück. Geprüft werden Start per Launcher und INSTALL_TTS_DATA, erfolgreiche asynchrone TTS-Initialisierung, passende Sprache, Modelldownload-Bedienelemente sowie Activity-Neuerstellung. Workflow: `voices-launch.yml`.

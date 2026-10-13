@@ -1,5 +1,11 @@
 # Sprechbrücke – Android 0.5
 
+**Startkorrektur: Sprechbrücke Stimmen 0.2**
+
+[Stimmen-Modul 0.2 als Update herunterladen](https://github.com/scaleoger66-collab/CHATGPT-CODEX/actions/runs/38399611396/artifacts/11813169517). Die APK über die vorhandene Stimmen-App installieren; Sprachpakete bleiben dabei erhalten. Der Übersetzer 0.5 kann unverändert bleiben. Beim erstmaligen Einrichten die Stimmen-APK 0.2 verwenden, auch wenn das unten verlinkte ursprüngliche 0.5-Archiv noch Stimmen 0.1 enthält.
+
+Behoben: Bei deutscher oder polnischer Startsprache fragte Android bereits während `TextToSpeechService.onCreate()` die Sprache ab. Die benötigten Modelldaten wurden erst danach initialisiert. Version 0.2 bereitet sie vorher vor. Die neuen Starttests prüfen beide Sprachen, das Öffnen über das App-Symbol und den Installationsaufruf aus dem Übersetzer sowie Activity-Neuerstellung. Sie warten auf die tatsächliche TTS-Initialisierung. [Build und Prüfungen bestanden](https://github.com/scaleoger66-collab/CHATGPT-CODEX/actions/runs/38399611396); Signaturschlüssel unverändert.
+
 Deutsch ↔ Polnisch für Android 12 und neuer, mit Textübersetzung, Gesprächsmodus, Live-Sprachabschnitten und Offline-Sprachausgabe.
 
 Version 0.5 ergänzt **Gosia medium**, **Darkman medium** und **Thorsten high** als herunterladbare Offline-Stimmen. Die Sprachausgabe läuft in der separaten Android-App **Sprechbrücke Stimmen**; der Übersetzer spricht sie über Androids Standard-TTS-Schnittstelle an.
