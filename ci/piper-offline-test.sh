@@ -31,4 +31,7 @@ from pathlib import Path
 text=Path('app/build/reports/piper/instrumentation.txt').read_text()
 assert 'OK (1 test)' in text and 'FAILURES' not in text and 'INSTRUMENTATION_FAILED' not in text, text
 PY
-adb pull /data/local/tmp/sprechbruecke-audio/. app/build/reports/piper/
+for voice in gosia darkman thorsten; do
+  adb exec-out run-as de.sprechbruecke.voices cat "files/$voice.wav" > "app/build/reports/piper/$voice.wav"
+  adb exec-out run-as de.sprechbruecke.voices cat "files/$voice-android.wav" > "app/build/reports/piper/$voice-android.wav"
+done

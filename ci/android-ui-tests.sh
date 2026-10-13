@@ -2,6 +2,7 @@
 set -uo pipefail
 bash ci/piper-offline-test.sh
 piper_result=$?
+if [ "$piper_result" -ne 0 ]; then exit "$piper_result"; fi
 gradle --no-daemon :app:connectedDebugAndroidTest
 test_result=$?
 if [ "$piper_result" -ne 0 ]; then test_result=$piper_result; fi

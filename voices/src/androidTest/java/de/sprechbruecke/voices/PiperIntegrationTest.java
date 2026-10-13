@@ -1,7 +1,6 @@
 package de.sprechbruecke.voices;
 
 import android.content.Context;
-import android.os.ParcelFileDescriptor;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
 import android.speech.tts.Voice;
@@ -28,16 +27,18 @@ public class PiperIntegrationTest {
         PiperModels models=PiperModels.get(context);
         for(PiperVoice voice:PiperVoice.ALL) {
             File archive=new File(context.getCacheDir(),voice.directory()+".tar.bz2");
+            android.util.Log.i("PiperTest","Install "+voice.id);
             models.installArchive(voice,archive,()->false); assertTrue(models.installed(voice));
+            android.util.Log.i("PiperTest","Load "+voice.id);
             OfflineTts tts=PiperEngine.create(models.directory(voice),voice);
             try {
                 String phrase=voice.language.equals("pl") ? "Cześć! Jak się masz? Miło cię poznać." : "Hallo! Wie geht es dir? Schön, dich kennenzulernen.";
+                android.util.Log.i("PiperTest","Generate "+voice.id);
                 GeneratedAudio audio=tts.generate(phrase,0,1f);
                 assertEquals(22050,audio.getSampleRate()); assertTrue(audio.getSamples().length>22050);
                 double energy=0; for(float sample:audio.getSamples()) { assertTrue(Float.isFinite(sample)); energy+=sample*sample; }
                 assertTrue("Output must contain audible signal",energy/audio.getSamples().length>0.00001);
                 File wav=new File(context.getFilesDir(),voice.id+".wav"); assertTrue(audio.save(wav.getAbsolutePath()));
-                copyToReports(wav);
                 int[] callbacks={0};
                 tts.generateWithCallback(phrase+" "+phrase,0,1f,samples -> { callbacks[0]++; return 0; });
                 assertEquals("Native streaming synthesis must respect cancellation",1,callbacks[0]);
@@ -75,15 +76,8 @@ public class PiperIntegrationTest {
                 assertTrue("Android synthesis completion: "+selected.id,finished.await(180,TimeUnit.SECONDS));
                 assertEquals("Android synthesis error",0,error.get());
                 assertTrue("Android produced PCM audio",wav.length()>44100);
-                copyToReports(wav);
                 System.out.println("PIPER_ANDROID_SERVICE_OK "+selected.id);
             }
         } finally { speech.shutdown(); }
-    }
-    private void copyToReports(File wav) throws Exception {
-        for(String command:new String[]{"mkdir -p /data/local/tmp/sprechbruecke-audio", "cp "+wav.getAbsolutePath()+" /data/local/tmp/sprechbruecke-audio/"+wav.getName()}) {
-            ParcelFileDescriptor fd=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand(command);
-            try(InputStream in=new ParcelFileDescriptor.AutoCloseInputStream(fd)) { byte[] b=new byte[4096]; while(in.read(b)!=-1){} }
-        }
     }
 }

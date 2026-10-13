@@ -69,7 +69,7 @@ public class VoiceActivity extends Activity {
     }
     private void licenses() {
         try {
-            TextView text=new TextView(this);text.setText(asset("VOICE_NOTICES.txt")+"\n\n"+asset("GPL-3.0.txt"));text.setTextIsSelectable(true);text.setPadding(24,16,24,16);
+            TextView text=new TextView(this);text.setText(asset("VOICE_NOTICES.txt")+"\n\n"+asset("GPL-3.0.txt")+"\n\n"+asset("APACHE-2.0.txt")+"\n\n"+asset("ONNX-MIT.txt"));text.setTextIsSelectable(true);text.setPadding(24,16,24,16);
             ScrollView scroll=new ScrollView(this);scroll.addView(text);new AlertDialog.Builder(this).setTitle("Lizenzen & Quellen").setView(scroll).setPositiveButton("Schließen",null).show();
         }catch(IOException e){progress.setText("Quellen und Lizenzen stehen im GitHub-Projekt unter voices/.");}
     }
