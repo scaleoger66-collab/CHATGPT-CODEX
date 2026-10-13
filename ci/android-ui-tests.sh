@@ -2,6 +2,18 @@
 set -uo pipefail
 gradle --no-daemon connectedDebugAndroidTest
 test_result=$?
+# Device-sized windows, including Android accessibility font scaling. Always restore settings.
+trap 'adb shell wm size reset; adb shell wm density reset; adb shell settings put system font_scale 1.0' EXIT
+for configuration in '1080x2520 480 1.0' '1080x2520 480 2.0' '1968x2184 420 1.0' '1968x2184 420 2.0'; do
+  read -r display_size display_density font_scale <<< "$configuration"
+  adb shell wm size "$display_size"
+  adb shell wm density "$display_density"
+  adb shell settings put system font_scale "$font_scale"
+  sleep 2
+  gradle --no-daemon connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=de.sprechbruecke.ResponsiveLayoutTest --rerun-tasks
+  result=$?
+  if [ "$result" -ne 0 ]; then test_result=$result; fi
+done
 mkdir -p app/build/reports/screenshots
 adb pull /data/local/tmp/sprechbruecke-screenshots/. app/build/reports/screenshots || true
 python3 - <<'PY'

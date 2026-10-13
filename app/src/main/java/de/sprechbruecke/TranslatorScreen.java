@@ -15,17 +15,11 @@ import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.widget.*;
 
-/** Native layouts shared by the two selectable presentations. Sizes are density-independent. */
+/** Layout dimensions use dp; typography uses sp, including Android's nonlinear font scaling. */
 final class TranslatorScreen {
     interface Actions {
-        void settings();
-        void mode(Presentation.Mode mode);
-        void swap();
-        void record(boolean german);
-        void translate();
-        void speak();
-        void voices();
-        void clear();
+        void settings(); void mode(Presentation.Mode mode); void swap(); void record(boolean german);
+        void translate(); void speak(); void voices(); void clear();
     }
     final EditText input;
     final TextView output, status, history, voiceInfo;
@@ -34,182 +28,200 @@ final class TranslatorScreen {
     private final Activity activity;
     private final Presentation presentation;
     private final int background, surface, foreground, muted, accent, border;
-    private final TextView sourceLabel, targetLabel, direction;
+    private final TextView sourceLabel, targetLabel, from, to;
     private final LinearLayout sourceCard, targetCard;
-    private final Button play;
+    private final ImageButton play;
     private final Button microphone, germanMic, polishMic;
+    private final float typeFactor;
     private boolean germanSource;
 
     TranslatorScreen(Activity activity, Presentation presentation, boolean germanSource, Actions actions) {
         this.activity = activity; this.presentation = presentation; this.germanSource = germanSource;
         boolean dark = presentation.dark();
-        background = color(dark ? "#0B1219" : "#FAF7F2");
-        surface = color(dark ? "#17222D" : "#FFFFFF");
-        foreground = color(dark ? "#E4F1FC" : "#143338");
-        muted = color(dark ? "#A9BDCC" : "#536B71");
-        accent = color(dark ? "#146DB6" : "#087D80");
-        border = color(dark ? "#2F4455" : "#E5E2DA");
-        int coral = color("#C54B3B");
-        int teal = color("#087D80");
+        int widthDp = activity.getResources().getConfiguration().screenWidthDp;
+        float fontScale = activity.getResources().getConfiguration().fontScale;
+        // Physical pixels alone do not determine readable type. Use available logical width,
+        // then let setTextSize(SP) apply the user's font preference without capping it.
+        typeFactor = Math.max(.94f, Math.min(1.08f, widthDp / 380f));
+        boolean wide = widthDp >= 680 && widthDp / fontScale >= 480;
+        background = color(dark ? "#0B1115" : "#FFFBF6");
+        surface = color(dark ? "#192329" : "#FFFFFF");
+        foreground = color(dark ? "#E7EFF2" : "#172C2D");
+        muted = color(dark ? "#A8BAC4" : "#607174");
+        accent = color(dark ? "#168CE2" : "#087F80");
+        border = color(dark ? "#35434D" : "#E9E5DD");
+        int coral = color("#EE7564"), teal = color("#087F80");
 
         ScrollView scroll = new ScrollView(activity);
         scroll.setId(R.id.screen); scroll.setFillViewport(true); scroll.setBackgroundColor(background);
+        scroll.setClipToPadding(true);
         scroll.setOnApplyWindowInsetsListener((v, insets) -> {
-            Insets bars = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.ime());
+            Insets bars = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout() | WindowInsets.Type.ime());
             scroll.setPadding(bars.left, bars.top, bars.right, bars.bottom); return insets;
         });
-        // Center the content on the unfolded display, while allowing all controls to scroll at large font sizes.
         LinearLayout outer = column(); outer.setGravity(Gravity.CENTER_HORIZONTAL);
-        LinearLayout root = column(); root.setPadding(dp(20), dp(24), dp(20), dp(28));
-        root.setFocusableInTouchMode(true);
-        int widthDp = activity.getResources().getConfiguration().screenWidthDp;
-        outer.addView(root, new LinearLayout.LayoutParams(widthDp > 900 ? dp(900) : -1, -2)); scroll.addView(outer);
-        activity.setContentView(scroll);
+        LinearLayout root = column(); root.setPadding(dp(16), dp(12), dp(16), dp(20)); root.setFocusableInTouchMode(true);
+        outer.addView(root, new LinearLayout.LayoutParams(widthDp > 960 ? dp(960) : -1, -2)); scroll.addView(outer);
+        activity.setContentView(scroll); scroll.requestApplyInsets();
         WindowInsetsController bars = activity.getWindow().getInsetsController();
         if (bars != null) bars.setSystemBarsAppearance(dark ? 0 : WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
             WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);
 
         LinearLayout header = row();
-        LinearLayout heading = column();
-        TextView title = text("Sprechbrücke", 28, foreground); title.setTypeface(Typeface.create("serif", Typeface.BOLD));
-        heading.addView(title);
-        heading.addView(text(dark ? "NACHT & FOKUS" : "DIALOG & NÄHE", 11, muted));
-        header.addView(heading, new LinearLayout.LayoutParams(0, -2, 1));
-        ImageButton settings = new ImageButton(activity); settings.setId(R.id.settings);
-        settings.setImageResource(R.drawable.ic_settings); settings.setImageTintList(ColorStateList.valueOf(foreground));
-        settings.setContentDescription("Einstellungen"); settings.setBackground(ripple(surface, 24));
-        settings.setOnClickListener(v -> actions.settings()); header.addView(settings, new LinearLayout.LayoutParams(dp(48), dp(48)));
-        root.addView(header); space(root, 20);
+        TextView title = text("Sprechbrücke", 24, foreground); title.setTypeface(Typeface.create("serif", Typeface.BOLD));
+        header.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
+        ImageButton settings = icon(R.drawable.ic_settings, "Einstellungen", Color.TRANSPARENT, foreground, v -> actions.settings());
+        settings.setId(R.id.settings); header.addView(settings, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        root.addView(header); space(root, 8);
 
-        LinearLayout tabs = row(); tabs.setPadding(dp(4), dp(4), dp(4), dp(4)); tabs.setBackground(shape(dark ? surface : color("#EDEAE4"), 28));
+        LinearLayout tabs = row(); tabs.setPadding(dp(2), dp(2), dp(2), dp(2)); tabs.setBackground(shape(dark ? surface : color("#F0EDE7"), 28));
         String[] tabLabels = {"Text", "Gespräch", "Live"};
         int[] tabIds = {R.id.mode_text, R.id.mode_conversation, R.id.mode_live};
         Presentation.Mode[] modes = Presentation.Mode.values();
         for (int i = 0; i < modes.length; i++) {
             Presentation.Mode mode = modes[i]; boolean selected = mode == presentation.mode;
-            Button tab = button(tabLabels[i], selected ? accent : Color.TRANSPARENT, selected ? Color.WHITE : muted, v -> actions.mode(mode));
-            tab.setId(tabIds[i]); tab.setTextSize(14); tab.setSelected(selected);
+            int selectedColor = !dark && mode == Presentation.Mode.CONVERSATION ? coral : accent;
+            Button tab = button(tabLabels[i], selected ? selectedColor : Color.TRANSPARENT, selected ? Color.WHITE : foreground, v -> actions.mode(mode));
+            tab.setId(tabIds[i]); tab.setTextSize(13 * typeFactor); tab.setSelected(selected);
             tabs.addView(tab, new LinearLayout.LayoutParams(0, -2, 1));
         }
-        root.addView(tabs); space(root, 16);
-        direction = button("", surface, foreground, v -> actions.swap());
-        direction.setContentDescription("Sprachrichtung wechseln"); root.addView(direction); space(root, 10);
+        root.addView(tabs); space(root, 10);
+        LinearLayout languages = row();
+        from = button("", surface, foreground, v -> actions.swap());
+        to = button("", surface, foreground, v -> actions.swap());
+        from.setContentDescription("Ausgangssprache wechseln"); to.setContentDescription("Zielsprache wechseln");
+        Button swap = button("⇄", Color.TRANSPARENT, foreground, v -> actions.swap()); swap.setContentDescription("Sprachrichtung wechseln");
+        languages.addView(from, new LinearLayout.LayoutParams(0, -2, 1));
+        languages.addView(swap, new LinearLayout.LayoutParams(dp(48), -2));
+        languages.addView(to, new LinearLayout.LayoutParams(0, -2, 1)); root.addView(languages); space(root, 10);
 
-        level = new LevelView(activity, accent);
-        if (presentation.isLive()) root.addView(level, new LinearLayout.LayoutParams(-1, dp(74)));
-        status = text("Sprachmodelle werden geprüft …", 14, muted); status.setGravity(Gravity.CENTER);
+        level = new LevelView(activity, color("#60C7FF"));
+        if (presentation.isLive()) root.addView(level, new LinearLayout.LayoutParams(-1, dp(widthDp < 360 ? 62 : 78)));
+        status = text("Sprachmodelle werden geprüft …", 12, muted); status.setGravity(Gravity.CENTER);
         status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
-        root.addView(status); space(root, 16);
+        root.addView(status); space(root, 10);
 
         LinearLayout cards = new LinearLayout(activity);
-        boolean wide = widthDp >= 720;
-        cards.setOrientation(wide ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
-        cards.setBaselineAligned(false);
-        sourceCard = card(dark ? surface : color("#FCE7E0"));
-        sourceLabel = text("", 13, dark ? muted : coral); sourceCard.addView(sourceLabel);
+        cards.setOrientation(wide ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL); cards.setBaselineAligned(false);
+        sourceCard = card(dark ? surface : color("#FCE9E3"));
+        sourceLabel = text("", 12, muted); sourceCard.addView(sourceLabel);
         input = new EditText(activity); input.setId(R.id.input_text);
-        input.setTextColor(foreground); input.setHintTextColor(muted); input.setTextSize(22);
-        input.setHint(presentation.mode == Presentation.Mode.TEXT ? "Text eingeben …" : "Gesprochenes erscheint hier …");
-        input.setMinLines(2); input.setGravity(Gravity.TOP | Gravity.START); input.setPadding(0, dp(8), 0, dp(8));
+        input.setTextColor(foreground); input.setHintTextColor(muted); input.setTextSize((presentation.isLive() ? 18 : 22) * typeFactor);
+        input.setHint(presentation.mode == Presentation.Mode.TEXT ? "Text eingeben …" : "Gesprochenes …");
+        input.setMinLines(presentation.mode == Presentation.Mode.TEXT ? 3 : 1);
+        input.setGravity(Gravity.TOP | Gravity.START); input.setPadding(0, dp(6), 0, dp(6));
         input.setBackgroundColor(Color.TRANSPARENT);
         input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-        input.setFilters(new InputFilter[]{new InputFilter.LengthFilter(5000)});
-        input.setContentDescription("Ausgangstext"); sourceCard.addView(input);
-        TextView inputNote = text("Bis zu 5.000 Zeichen · bearbeitbar", 11, muted); sourceCard.addView(inputNote);
-        targetCard = card(dark ? color("#102D45") : color("#D9EEEA"));
-        targetLabel = text("", 13, dark ? color("#A2D5FA") : teal); targetCard.addView(targetLabel);
-        output = text("", 23, dark ? color("#C4E7FF") : foreground); output.setId(R.id.output_text);
-        output.setHint("Deine Übersetzung …"); output.setHintTextColor(muted); output.setMinLines(2);
-        output.setTextIsSelectable(true); output.setPadding(0, dp(12), 0, dp(16)); targetCard.addView(output);
-        play = button("Vorlesen", dark ? color("#204868") : color("#BCE0DA"), foreground, v -> actions.speak());
-        play.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_volume, 0, 0, 0);
-        play.setCompoundDrawableTintList(ColorStateList.valueOf(foreground)); play.setContentDescription("Übersetzung vorlesen"); targetCard.addView(play);
+        input.setFilters(new InputFilter[]{new InputFilter.LengthFilter(5000)}); input.setContentDescription("Ausgangstext");
+        sourceCard.addView(input, new LinearLayout.LayoutParams(-1, -2));
+        if (presentation.mode == Presentation.Mode.TEXT) sourceCard.addView(text("Bis zu 5.000 Zeichen", 11, muted));
+        targetCard = card(dark ? color("#153C57") : color("#DDF0EC"));
+        targetLabel = text("", 12, muted); targetCard.addView(targetLabel);
+        LinearLayout translated = row();
+        output = text("", 22, dark ? color("#BDE6FF") : foreground); output.setId(R.id.output_text);
+        output.setHint("Übersetzung …"); output.setHintTextColor(muted); output.setMinLines(1);
+        output.setTextIsSelectable(true); output.setPadding(0, dp(6), dp(8), dp(6));
+        translated.addView(output, new LinearLayout.LayoutParams(0, -2, 1));
+        play = icon(R.drawable.ic_volume, "Übersetzung vorlesen", dark ? color("#28618A") : color("#BFE3DB"), dark ? Color.WHITE : teal, v -> actions.speak());
+        translated.addView(play, new LinearLayout.LayoutParams(dp(48), dp(48))); targetCard.addView(translated);
         if (wide) {
-            LinearLayout.LayoutParams first = new LinearLayout.LayoutParams(0, -2, 1); first.setMarginEnd(dp(12));
+            LinearLayout.LayoutParams first = new LinearLayout.LayoutParams(0, -2, 1); first.setMarginEnd(dp(14));
             cards.addView(sourceCard, first); cards.addView(targetCard, new LinearLayout.LayoutParams(0, -2, 1));
-        } else {
-            cards.addView(sourceCard); space(cards, 12); cards.addView(targetCard);
-        }
-        root.addView(cards); space(root, 18);
+        } else { cards.addView(sourceCard); space(cards, 10); cards.addView(targetCard); }
+        root.addView(cards); space(root, 14);
 
-        microphone = button("Mikrofon starten", accent, Color.WHITE, v -> actions.record(this.germanSource));
-        microphone.setId(R.id.main_mic); micIcon(microphone);
-        germanMic = button("Deutsch\nsprechen", coral, Color.WHITE, v -> actions.record(true)); germanMic.setId(R.id.german_mic); micIcon(germanMic);
-        polishMic = button("Mów\npo polsku", teal, Color.WHITE, v -> actions.record(false)); polishMic.setId(R.id.polish_mic); micIcon(polishMic);
-        if (presentation.mode == Presentation.Mode.TEXT) {
-            root.addView(button("Übersetzen", accent, Color.WHITE, v -> actions.translate()));
-        } else if (presentation.dualMicrophones()) {
-            LinearLayout microphones = row();
-            germanMic.setMinHeight(dp(112)); polishMic.setMinHeight(dp(112));
-            LinearLayout.LayoutParams first = new LinearLayout.LayoutParams(0, -2, 1); first.setMarginEnd(dp(12));
-            microphones.addView(germanMic, first); microphones.addView(polishMic, new LinearLayout.LayoutParams(0, -2, 1));
+        microphone = roundButton("Mikrofon starten", accent, v -> actions.record(this.germanSource)); microphone.setId(R.id.main_mic);
+        germanMic = roundButton("Deutsch\nsprechen", coral, v -> actions.record(true)); germanMic.setId(R.id.german_mic);
+        polishMic = roundButton("Mów\npo polsku", teal, v -> actions.record(false)); polishMic.setId(R.id.polish_mic);
+        if (presentation.mode == Presentation.Mode.TEXT) root.addView(button("Übersetzen", accent, Color.WHITE, v -> actions.translate()));
+        else {
+            LinearLayout microphones = row(); microphones.setGravity(Gravity.CENTER);
+            int diameter = Math.min(144, (Math.min(widthDp, 600) - 56) / 2);
+            // Reflow for very large accessibility fonts instead of shrinking the user's text.
+            if (presentation.dualMicrophones()) {
+                boolean stack = fontScale >= 1.6f && widthDp < 480;
+                microphones.setOrientation(stack ? LinearLayout.VERTICAL : LinearLayout.HORIZONTAL);
+                int size = stack ? Math.min(widthDp - 40, 220) : diameter;
+                microphones.addView(germanMic, new LinearLayout.LayoutParams(dp(size), -2));
+                View gap = new View(activity); microphones.addView(gap, new LinearLayout.LayoutParams(dp(18), dp(12)));
+                microphones.addView(polishMic, new LinearLayout.LayoutParams(dp(size), -2));
+            } else microphones.addView(microphone, new LinearLayout.LayoutParams(dp(fontScale > 1.5 ? 160 : 108), -2));
             root.addView(microphones);
-        } else root.addView(microphone);
-        readAloud = new Switch(activity); readAloud.setText("Im Gespräch automatisch vorlesen");
-        readAloud.setTextColor(muted); readAloud.setTextSize(14); readAloud.setMinHeight(dp(48));
-        readAloud.setThumbTintList(ColorStateList.valueOf(accent));
-        if (presentation.mode == Presentation.Mode.CONVERSATION) { space(root, 8); root.addView(readAloud); }
-        if (presentation.isLive()) {
-            space(root, 10);
-            root.addView(text("Übersetzung in Sprachabschnitten. Während der Übersetzung pausiert das Mikrofon. Vorlesen beendet die Aufnahme.", 12, muted));
         }
-        space(root, 18);
-        Button voices = button("Stimme & Hörprobe  ›", surface, foreground, v -> actions.voices()); root.addView(voices);
-        voiceInfo = text("Sprachausgabe wird geladen …", 12, muted); voiceInfo.setPadding(dp(8), dp(6), dp(8), 0); root.addView(voiceInfo);
-        space(root, 22);
+        readAloud = new Switch(activity); readAloud.setText("Automatisch vorlesen"); readAloud.setTextColor(muted);
+        readAloud.setTextSize(12 * typeFactor); readAloud.setMinHeight(dp(48)); readAloud.setThumbTintList(ColorStateList.valueOf(accent));
+        if (presentation.mode == Presentation.Mode.CONVERSATION) root.addView(readAloud);
+        if (presentation.isLive()) {
+            TextView explanation = text("Übersetzung in Sprachabschnitten ⓘ", 11, muted); explanation.setGravity(Gravity.CENTER); explanation.setMinHeight(dp(48));
+            explanation.setOnClickListener(v -> new android.app.AlertDialog.Builder(activity).setMessage("Während der Übersetzung pausiert das Mikrofon. Vorlesen beendet die Aufnahme.").setPositiveButton("OK", null).show());
+            root.addView(explanation);
+        }
+        space(root, 8);
+        LinearLayout voices = card(surface); voices.setPadding(dp(12), dp(8), dp(12), dp(8)); voices.setMinimumHeight(dp(48));
+        TextView voiceTitle = text("◖  Stimme & Hörprobe   ›", 13, foreground); voices.addView(voiceTitle);
+        voiceInfo = text("Sprachausgabe wird geladen …", 11, muted); voiceInfo.setMaxLines(2);
+        voiceInfo.setEllipsize(android.text.TextUtils.TruncateAt.END); voices.addView(voiceInfo);
+        voices.setBackground(ripple(surface, 16)); voices.setOnClickListener(v -> actions.voices()); voices.setFocusable(true); root.addView(voices);
+        space(root, 10);
         LinearLayout historyCard = card(surface);
-        TextView historyTitle = text("Letzte Unterhaltung", 16, foreground); historyTitle.setTypeface(null, Typeface.BOLD); historyCard.addView(historyTitle);
-        historyCard.addView(text("Nur für diese Sitzung", 12, muted));
-        history = text("", 15, foreground); history.setId(R.id.history_text); history.setHint("Deine Übersetzungen erscheinen hier."); history.setHintTextColor(muted);
-        history.setPadding(0, dp(14), 0, dp(10)); history.setTextIsSelectable(true); historyCard.addView(history);
-        historyCard.addView(button("Verlauf löschen", Color.TRANSPARENT, muted, v -> actions.clear())); root.addView(historyCard);
-        space(root, 16); root.addView(text("Deutsch ↔ Polski · Offline nach Modelldownload\nÜbersetzungen können Fehler enthalten.", 12, muted));
-        updateDirection(germanSource);
-        root.requestFocus();
+        TextView historyTitle = text("◷  Letzte Unterhaltung", 13, foreground); historyCard.addView(historyTitle);
+        history = text("", 13, foreground); history.setId(R.id.history_text); history.setHint("Hier erscheinen deine Übersetzungen."); history.setHintTextColor(muted);
+        history.setPadding(0, dp(8), 0, dp(4)); history.setTextIsSelectable(true); historyCard.addView(history);
+        Button clear = button("Verlauf löschen", Color.TRANSPARENT, muted, v -> actions.clear()); clear.setTextSize(12 * typeFactor); historyCard.addView(clear); root.addView(historyCard);
+        updateDirection(germanSource); root.requestFocus();
     }
     void updateDirection(boolean german) {
         germanSource = german;
-        direction.setText(german ? "Deutsch   ⇄   Polski" : "Polski   ⇄   Deutsch");
+        from.setText(german ? "🇩🇪 Deutsch" : "🇵🇱 Polski"); to.setText(german ? "🇵🇱 Polski" : "🇩🇪 Deutsch");
         sourceLabel.setText(german ? "Deutsch · Ausgangstext" : "Polski · Ausgangstext");
         targetLabel.setText(german ? "Polski · Übersetzung" : "Deutsch · Übersetzung");
         if (!presentation.dark()) {
-            sourceCard.setBackground(shape(color(german ? "#FCE7E0" : "#D9EEEA"), 24));
-            targetCard.setBackground(shape(color(german ? "#D9EEEA" : "#FCE7E0"), 24));
-            sourceLabel.setTextColor(color(german ? "#C54B3B" : "#087D80"));
-            targetLabel.setTextColor(color(german ? "#087D80" : "#C54B3B"));
-            play.setBackground(ripple(color(german ? "#BCE0DA" : "#F5CEC2"), 28));
+            sourceCard.setBackground(shape(color(german ? "#FCE9E3" : "#DDF0EC"), 18));
+            targetCard.setBackground(shape(color(german ? "#DDF0EC" : "#FCE9E3"), 18));
+            sourceLabel.setTextColor(color(german ? "#AD493B" : "#096C6D")); targetLabel.setTextColor(color(german ? "#096C6D" : "#AD493B"));
+            play.setBackground(ripple(color(german ? "#BFE3DB" : "#F6CFC4"), 100));
+            play.setImageTintList(ColorStateList.valueOf(color(german ? "#096C6D" : "#AD493B")));
         }
     }
     void setRecording(boolean running) {
-        microphone.setText(running ? "Aufnahme stoppen" : "Mikrofon starten");
+        microphone.setText(running ? "Stoppen" : "Mikrofon starten");
         germanMic.setText(running && germanSource ? "Aufnahme\nstoppen" : "Deutsch\nsprechen");
         polishMic.setText(running && !germanSource ? "Zatrzymaj\nnagrywanie" : "Mów\npo polsku");
+        microphone.setContentDescription(running ? "Aufnahme stoppen" : "Mikrofon starten");
         if (!running) level.reset();
     }
-    private void micIcon(Button button) {
-        button.setCompoundDrawablesWithIntrinsicBounds(0, R.drawable.ic_mic, 0, 0); button.setCompoundDrawablePadding(dp(6));
-    }
-    private int color(String color) { return Color.parseColor(color); }
+    private int color(String value) { return Color.parseColor(value); }
     private int dp(int value) { return Math.round(value * activity.getResources().getDisplayMetrics().density); }
-    private LinearLayout column() { LinearLayout view = new LinearLayout(activity); view.setOrientation(LinearLayout.VERTICAL); return view; }
-    private LinearLayout row() { LinearLayout view = new LinearLayout(activity); view.setOrientation(LinearLayout.HORIZONTAL); view.setGravity(Gravity.CENTER_VERTICAL); return view; }
+    private LinearLayout column() { LinearLayout v = new LinearLayout(activity); v.setOrientation(LinearLayout.VERTICAL); return v; }
+    private LinearLayout row() { LinearLayout v = new LinearLayout(activity); v.setOrientation(LinearLayout.HORIZONTAL); v.setGravity(Gravity.CENTER_VERTICAL); return v; }
     private void space(LinearLayout parent, int height) { parent.addView(new View(activity), new LinearLayout.LayoutParams(1, dp(height))); }
-    private TextView text(String value, int size, int color) {
-        TextView view = new TextView(activity); view.setText(value); view.setTextColor(color); view.setTextSize(size); return view;
-    }
-    private LinearLayout card(int color) {
-        LinearLayout view = column(); view.setPadding(dp(18), dp(16), dp(18), dp(16)); view.setBackground(shape(color, 24)); return view;
-    }
+    private TextView text(String value, int size, int color) { TextView v = new TextView(activity); v.setText(value); v.setTextColor(color); v.setTextSize(size * typeFactor); return v; }
+    private LinearLayout card(int color) { LinearLayout v = column(); v.setPadding(dp(14), dp(12), dp(14), dp(12)); v.setBackground(shape(color, 18)); return v; }
     private GradientDrawable shape(int color, int radius) {
-        GradientDrawable drawable = new GradientDrawable(); drawable.setColor(color); drawable.setCornerRadius(dp(radius));
-        if (color == surface) drawable.setStroke(dp(1), border); return drawable;
+        GradientDrawable d = new GradientDrawable(); d.setColor(color); d.setCornerRadius(dp(radius)); if (color == surface) d.setStroke(dp(1), border); return d;
     }
-    private RippleDrawable ripple(int color, int radius) {
-        return new RippleDrawable(ColorStateList.valueOf(presentation.dark() ? 0x3354B9FF : 0x22087D80), shape(color, radius), shape(Color.WHITE, radius));
+    private RippleDrawable ripple(int color, int radius) { return new RippleDrawable(ColorStateList.valueOf(presentation.dark() ? 0x3354B9FF : 0x22087D80), shape(color, radius), shape(Color.WHITE, radius)); }
+    private ImageButton icon(int resource, String label, int fill, int tint, View.OnClickListener listener) {
+        ImageButton v = new ImageButton(activity); v.setImageResource(resource); v.setImageTintList(ColorStateList.valueOf(tint));
+        v.setContentDescription(label); v.setBackground(ripple(fill, 100)); v.setPadding(dp(12), dp(12), dp(12), dp(12)); v.setOnClickListener(listener); return v;
     }
-    private Button button(String title, int color, int textColor, View.OnClickListener listener) {
-        Button view = new Button(activity); view.setText(title); view.setAllCaps(false); view.setTextColor(textColor); view.setTextSize(16);
-        view.setMinHeight(dp(52)); view.setMinWidth(0); view.setMinimumWidth(0); view.setPadding(dp(14), dp(12), dp(14), dp(12));
-        view.setBackground(ripple(color, 28)); view.setStateListAnimator(null); view.setOnClickListener(listener); return view;
+    private void styleButton(Button v, String title, int fill, int tint, View.OnClickListener listener) {
+        v.setText(title); v.setAllCaps(false); v.setTextColor(tint); v.setTextSize(13 * typeFactor); v.setGravity(Gravity.CENTER);
+        v.setMinHeight(dp(48)); v.setMinimumHeight(dp(48)); v.setMinWidth(0); v.setMinimumWidth(0);
+        v.setPadding(dp(8), dp(6), dp(8), dp(6)); v.setBackground(ripple(fill, 28)); v.setStateListAnimator(null); v.setOnClickListener(listener);
+    }
+    private Button button(String title, int fill, int tint, View.OnClickListener listener) { Button v = new Button(activity); styleButton(v, title, fill, tint, listener); return v; }
+    private Button roundButton(String title, int fill, View.OnClickListener listener) {
+        Button v = new Button(activity) {
+            @Override protected void onMeasure(int widthSpec, int heightSpec) {
+                super.onMeasure(widthSpec, heightSpec);
+                // Keep the circle at normal font sizes. With accessibility type, grow vertically
+                // into a pill if necessary, preserving all lines and the full touch target.
+                setMeasuredDimension(getMeasuredWidth(), Math.max(getMeasuredWidth(), getMeasuredHeight()));
+            }
+        };
+        styleButton(v, title, fill, Color.WHITE, listener); v.setPadding(dp(18), dp(14), dp(18), dp(14));
+        v.setCompoundDrawablesWithIntrinsicBounds(0, R.drawable.ic_mic, 0, 0); v.setCompoundDrawableTintList(ColorStateList.valueOf(Color.WHITE)); v.setCompoundDrawablePadding(dp(6));
+        v.setBackground(ripple(fill, 150)); return v;
     }
 }

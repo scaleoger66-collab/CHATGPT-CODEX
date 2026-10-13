@@ -41,7 +41,7 @@ public class DesignSwitchTest {
             onView(withId(R.id.german_mic)).check(doesNotExist());
             onView(withId(R.id.main_mic)).check(matches(withText("Mikrofon starten")));
             onView(withId(R.id.input_text)).check(matches(withText("Hallo, wie geht es dir?")));
-            scenario.onActivity(a -> assertEquals(Color.parseColor("#0B1219"), ((ColorDrawable)a.findViewById(R.id.screen).getBackground()).getColor()));
+            scenario.onActivity(a -> assertEquals(Color.parseColor("#0B1115"), ((ColorDrawable)a.findViewById(R.id.screen).getBackground()).getColor()));
             screenshot("design-2-night");
             scenario.recreate();
             onView(withId(R.id.mode_live)).check(matches(isSelected()));
@@ -81,7 +81,8 @@ public class DesignSwitchTest {
             onView(withId(R.id.history_text)).check(matches(withText("DE: Hallo\nPL: Cześć")));
         }
     }
-    private void screenshot(String name) throws Exception {
+    private void screenshot(String name) throws Exception { captureScreenshot(name); }
+    static void captureScreenshot(String name) throws Exception {
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
         Bitmap bitmap = InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
         assertNotNull(bitmap);
