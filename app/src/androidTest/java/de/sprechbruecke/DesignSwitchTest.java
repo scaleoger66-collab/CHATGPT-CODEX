@@ -27,7 +27,8 @@ public class DesignSwitchTest {
         ApplicationProvider.<Context>getApplicationContext().getSharedPreferences("appearance", Context.MODE_PRIVATE).edit().clear().commit();
     }
     private void choose(String item) {
-        onView(withId(R.id.settings)).perform(scrollTo(), click());
+        onView(withId(R.id.screen)).perform(swipeDown(), swipeDown());
+        onView(withId(R.id.settings)).perform(click());
         onView(withText("Design & Bedienung")).perform(click());
         onView(withText(item)).perform(click());
         onView(withText("Übernehmen")).perform(click());
@@ -57,7 +58,7 @@ public class DesignSwitchTest {
     @Test public void textModeAndExplicitDesignPersistAfterFreshLaunch() {
         try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
             choose("Design 2 · Nacht & Fokus\nDunkel, startet im Live-Modus");
-            onView(withId(R.id.mode_text)).perform(scrollTo(), click());
+            onView(withId(R.id.mode_text)).perform(click());
             onView(withText("Übersetzen")).perform(scrollTo()).check(matches(isDisplayed()));
             onView(withId(R.id.main_mic)).check(doesNotExist());
         }
@@ -92,11 +93,13 @@ public class DesignSwitchTest {
         bitmap.recycle();
         // Android's test runner uninstalls the app at the end, removing its scoped files.
         // Copy test-only screenshots to a shell-owned folder before that cleanup.
-        android.os.ParcelFileDescriptor copy = InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand(
-            "sh -c 'mkdir -p /data/local/tmp/sprechbruecke-screenshots && cp " + new File(folder, name + ".png").getAbsolutePath()
-            + " /data/local/tmp/sprechbruecke-screenshots/" + name + ".png'");
-        try (java.io.InputStream stream = new android.os.ParcelFileDescriptor.AutoCloseInputStream(copy)) {
-            byte[] buffer = new byte[1024]; while (stream.read(buffer) != -1) { /* wait for copy */ }
+        String[] commands = {"mkdir -p /data/local/tmp/sprechbruecke-screenshots",
+            "cp " + new File(folder, name + ".png").getAbsolutePath() + " /data/local/tmp/sprechbruecke-screenshots/" + name + ".png"};
+        for (String command : commands) {
+            android.os.ParcelFileDescriptor copy = InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand(command);
+            try (java.io.InputStream stream = new android.os.ParcelFileDescriptor.AutoCloseInputStream(copy)) {
+                byte[] buffer = new byte[1024]; while (stream.read(buffer) != -1) { /* wait for command */ }
+            }
         }
     }
 }
