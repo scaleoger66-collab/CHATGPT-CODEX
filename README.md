@@ -8,7 +8,7 @@ Unter **Stimme & Hörprobe** lassen sich installierte Anbieter (z. B. Samsung un
 
 Zum Vergleichen Google-Sprachausgabe über den Play Store installieren, als Anbieter wählen und unter **Sprachpakete installieren** Polnisch herunterladen. Danach mit der Hörprobe vergleichen. Ohne passende Stimme wird ein Hinweis angezeigt.
 
-Der Build von 0.2 und der Gerätetest der Stimmwahl stehen noch aus.
+Der [Build von 0.2](https://github.com/scaleoger66-collab/CHATGPT-CODEX/actions/runs/38343653438) inklusive Unit-Tests, Android Lint und APK-Signaturprüfung war erfolgreich. [Version 0.2 herunterladen](https://github.com/scaleoger66-collab/CHATGPT-CODEX/actions/runs/38343653438/artifacts/11787603916). Der Gerätetest der Stimmwahl und ein Hörvergleich stehen noch aus. Bei einem Signaturkonflikt mit 0.1 ist vor der Installation eine Deinstallation nötig; dabei gehen die heruntergeladenen Übersetzungsmodelle verloren.
 
 ## Erste Testversion installieren
 
