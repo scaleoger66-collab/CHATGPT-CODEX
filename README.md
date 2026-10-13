@@ -1,10 +1,10 @@
-# Sprechbrücke – Android 0.3
+# Sprechbrücke – Android 0.4
 
 Deutsch ↔ Polnisch für Android 12 und neuer, mit Textübersetzung, Gesprächsmodus, Live-Sprachabschnitten und Offline-Sprachausgabe.
 
-[Version 0.3 herunterladen (ZIP mit APK, ca. 31 MB)](https://github.com/scaleoger66-collab/CHATGPT-CODEX/actions/runs/38346499966/artifacts/11789875504)
+[Version 0.4 herunterladen (ZIP mit APK, ca. 31 MB)](https://github.com/scaleoger66-collab/CHATGPT-CODEX/actions/runs/38363426716/artifacts/11796108040)
 
-Der [Build vom 13. Oktober 2026](https://github.com/scaleoger66-collab/CHATGPT-CODEX/actions/runs/38346499966) war erfolgreich: Unit-Tests, Android Lint, alle drei Android-15-Bedienungstests und APK-Signaturprüfung bestanden. Gebauter Commit: `8f1b5d07e1950fbdbbdc91a0cac14a241ef7889b`. Die Emulator-Ansichten wurden kontrolliert. Der Test auf dem Fold 7 steht noch aus.
+Der [Build vom 13. Oktober 2026](https://github.com/scaleoger66-collab/CHATGPT-CODEX/actions/runs/38363426716) war erfolgreich: Unit-Tests, Android Lint, Bedienungstests, die Display-/Schriftgrößenmatrix und APK-Signaturprüfung bestanden. Gebauter Commit: `5d09c7843931d6753dcfc9d6a59b0254e55ff93d`. Die Emulator-Screenshots wurden kontrolliert. Ein abschließender Test auf dem echten Fold 7 steht noch aus.
 
 ## Design und Bedienung wechseln
 
@@ -17,7 +17,9 @@ Der [Build vom 13. Oktober 2026](https://github.com/scaleoger66-collab/CHATGPT-C
 
 Die Tabs **Text**, **Gespräch** und **Live** stehen in beiden Designs bereit. Design und zuletzt gewählter Modus bleiben nach einem Neustart ausgewählt. Beim Designwechsel bleiben Eingabe, fertige Übersetzung, Sitzungsverlauf und Stimmwahl erhalten. Laufende Aufnahme, Übersetzung und Sprachausgabe werden beendet, damit alte Ergebnisse keinen neuen Vorgang überschreiben. Es startet keine Aufnahme automatisch.
 
-Ab 720 dp Displaybreite stehen die Textkarten nebeneinander; auf schmalen Displays untereinander. Die Seite ist auch mit vergrößerter Schrift scrollbar. Die Pegelanzeige nutzt Androids gemeldete Mikrofonlautstärke.
+Version 0.4 nähert die Oberfläche den Designvorlagen an: kompakte Kacheln, separate Sprachfelder, korallfarbener Gesprächsreiter, runde Sprechtasten und Vorlesen direkt in der Übersetzungskachel. Im hellen Gesprächsmodus kann auch der Ausgangstext in seiner eigenen Sprache vorgelesen werden. Der Status „Text offline“ bezieht sich auf die geladenen Übersetzungsmodelle, nicht auf die Verfügbarkeit aller Sprachdienste.
+
+Ab 680 dp verfügbarer Breite stehen die Textkarten nebeneinander, sofern die Systemschrift ausreichend Platz lässt. Auf schmalen Displays stehen sie untereinander. Schriftgrößen verwenden `sp` und berücksichtigen Androids Systemschriftvergrößerung einschließlich der nichtlinearen Skalierung von Android 14+. Displaydichte und Bildschirmzoom gehen über die verfügbare dp-Breite ein. Die Systemschrift wird nicht begrenzt oder durch automatisches Verkleinern aufgehoben. Bei sehr großer Schrift werden die beiden Sprechtasten untereinander angeordnet; bei Bedarf wachsen Kreise zu höheren Kapseln. Alle Inhalte bleiben scrollbar. Aufklappen und Konfigurationswechsel erzeugen die Ansicht passend neu, mit Erhalt von Eingabe, Übersetzung und Sitzungsverlauf. Die Pegelanzeige nutzt Androids gemeldete Mikrofonlautstärke.
 
 ## Offline einrichten
 
@@ -41,9 +43,9 @@ Anbieter, Stimme pro Sprache/Anbieter und Sprechtempo werden gespeichert. Automa
 
 ## APK bauen und installieren
 
-[GitHub Actions](https://github.com/scaleoger66-collab/CHATGPT-CODEX/actions/workflows/android.yml) baut auf Push sowie manuell über **Run workflow**. Nach erfolgreichem Lauf das Artefakt **Sprechbruecke-v0.3-Android** herunterladen. Bei GitHub anmelden, ZIP in Samsungs **Eigene Dateien** entpacken, `Sprechbruecke-v0.3-debug.apk` öffnen. Falls erforderlich Installation für die Dateien-App erlauben. Artefakte bleiben 14 Tage verfügbar.
+[GitHub Actions](https://github.com/scaleoger66-collab/CHATGPT-CODEX/actions/workflows/android.yml) baut auf Push sowie manuell über **Run workflow**. Nach erfolgreichem Lauf das Artefakt **Sprechbruecke-v0.4-Android** herunterladen. Bei GitHub anmelden, ZIP in Samsungs **Eigene Dateien** entpacken, `Sprechbruecke-v0.4-debug.apk` öffnen. Falls erforderlich Installation für die Dateien-App erlauben. Artefakte bleiben 14 Tage verfügbar.
 
-0.3 ist eine Debug-Testversion. Bei einem Signaturkonflikt mit älteren Versionen muss die alte App vor der Installation deinstalliert werden; dabei gehen heruntergeladene Modelle und Einstellungen verloren. Ab 0.3 wird der Testsignaturschlüssel im GitHub-Actions-Cache wiederverwendet, solange dieser Cache verfügbar bleibt. Für eine Produktionsveröffentlichung ist ein dauerhaft verwalteter Release-Schlüssel erforderlich.
+0.4 ist eine Debug-Testversion. Bei einem Signaturkonflikt mit älteren Versionen muss die alte App vor der Installation deinstalliert werden; dabei gehen heruntergeladene Modelle und Einstellungen verloren. Der für 0.3 vorgesehene Schlüssel-Cache enthielt laut Buildprotokoll keinen Schlüssel (falscher Pfad). Ab 0.4 verwenden Build und Cache denselben ausdrücklich angegebenen Schlüsselpfad. Deshalb kann beim Wechsel von 0.3 auf 0.4 erneut eine Neuinstallation erforderlich sein. Der Testschlüssel wird für weitere Builds wiederverwendet, solange der Cache verfügbar bleibt. Für eine Produktionsveröffentlichung ist ein dauerhaft verwalteter Release-Schlüssel erforderlich.
 
 ## Entwicklung und Prüfungen
 
@@ -54,6 +56,6 @@ gradle testDebugUnitTest lintDebug assembleDebug
 gradle connectedDebugAndroidTest
 ```
 
-Der Workflow prüft zusätzlich auf einem Android-15-Emulator den Designwechsel über Einstellungen, passende Bedienelemente, Erhalt von Eingaben und Verlauf, Neustart sowie die zwei Sprachrichtungen. Screenshots und Testberichte werden als **Android-test-reports** abgelegt. Der APK-Download wird erst nach erfolgreicher Prüfung und Signaturverifikation erstellt.
+Der Workflow prüft zusätzlich auf einem Android-15-Emulator den Designwechsel über Einstellungen, passende Bedienelemente, Erhalt von Eingaben und Verlauf, Neustart sowie die zwei Sprachrichtungen. Die Displaymatrix prüft beide Designs bei 1080 × 2520 Pixel / 480 dpi (360 dp Breite) und 1968 × 2184 Pixel / 420 dpi (750 dp Breite), jeweils mit Systemschriftfaktor 1,0 und 2,0. Geprüft werden unter anderem sp-Skalierung, Text ohne vertikales Abschneiden, vollständige Reiterbeschriftung, Mindestgröße der Bedienelemente und sichtbare Mikrofontasten bei normaler Schrift. Screenshots enthalten ausdrücklich gesetzte Beispielsätze; dies ist kein Übersetzungsqualitätstest. Screenshots und Testberichte werden als **Android-test-reports** abgelegt. Der APK-Download wird erst nach erfolgreicher Prüfung und Signaturverifikation erstellt.
 
 Auf dem Fold 7 zusätzlich prüfen: beide Designs geschlossen und aufgeklappt, vergrößerte Schrift, Aufnahme abbrechen, Design während einer Aufnahme wechseln, beide Offline-Sprachen und Stimmen sowie längere Gespräche. Emulator-Tests belegen keine reale Mikrofon- oder Übersetzungsqualität.
