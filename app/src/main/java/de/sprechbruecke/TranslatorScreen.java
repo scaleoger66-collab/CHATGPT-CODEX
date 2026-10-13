@@ -35,6 +35,8 @@ final class TranslatorScreen {
     private final Presentation presentation;
     private final int background, surface, foreground, muted, accent, border;
     private final TextView sourceLabel, targetLabel, direction;
+    private final LinearLayout sourceCard, targetCard;
+    private final Button play;
     private final Button microphone, germanMic, polishMic;
     private boolean germanSource;
 
@@ -59,6 +61,7 @@ final class TranslatorScreen {
         // Center the content on the unfolded display, while allowing all controls to scroll at large font sizes.
         LinearLayout outer = column(); outer.setGravity(Gravity.CENTER_HORIZONTAL);
         LinearLayout root = column(); root.setPadding(dp(20), dp(24), dp(20), dp(28));
+        root.setFocusableInTouchMode(true);
         int widthDp = activity.getResources().getConfiguration().screenWidthDp;
         outer.addView(root, new LinearLayout.LayoutParams(widthDp > 900 ? dp(900) : -1, -2)); scroll.addView(outer);
         activity.setContentView(scroll);
@@ -102,7 +105,7 @@ final class TranslatorScreen {
         boolean wide = widthDp >= 720;
         cards.setOrientation(wide ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
         cards.setBaselineAligned(false);
-        LinearLayout sourceCard = card(dark ? surface : color("#FCE7E0"));
+        sourceCard = card(dark ? surface : color("#FCE7E0"));
         sourceLabel = text("", 13, dark ? muted : coral); sourceCard.addView(sourceLabel);
         input = new EditText(activity); input.setId(R.id.input_text);
         input.setTextColor(foreground); input.setHintTextColor(muted); input.setTextSize(22);
@@ -113,12 +116,12 @@ final class TranslatorScreen {
         input.setFilters(new InputFilter[]{new InputFilter.LengthFilter(5000)});
         input.setContentDescription("Ausgangstext"); sourceCard.addView(input);
         TextView inputNote = text("Bis zu 5.000 Zeichen · bearbeitbar", 11, muted); sourceCard.addView(inputNote);
-        LinearLayout targetCard = card(dark ? color("#102D45") : color("#D9EEEA"));
+        targetCard = card(dark ? color("#102D45") : color("#D9EEEA"));
         targetLabel = text("", 13, dark ? color("#A2D5FA") : teal); targetCard.addView(targetLabel);
         output = text("", 23, dark ? color("#C4E7FF") : foreground); output.setId(R.id.output_text);
         output.setHint("Deine Übersetzung …"); output.setHintTextColor(muted); output.setMinLines(2);
         output.setTextIsSelectable(true); output.setPadding(0, dp(12), 0, dp(16)); targetCard.addView(output);
-        Button play = button("Vorlesen", dark ? color("#204868") : color("#BCE0DA"), foreground, v -> actions.speak());
+        play = button("Vorlesen", dark ? color("#204868") : color("#BCE0DA"), foreground, v -> actions.speak());
         play.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_volume, 0, 0, 0);
         play.setCompoundDrawableTintList(ColorStateList.valueOf(foreground)); play.setContentDescription("Übersetzung vorlesen"); targetCard.addView(play);
         if (wide) {
@@ -162,12 +165,20 @@ final class TranslatorScreen {
         historyCard.addView(button("Verlauf löschen", Color.TRANSPARENT, muted, v -> actions.clear())); root.addView(historyCard);
         space(root, 16); root.addView(text("Deutsch ↔ Polski · Offline nach Modelldownload\nÜbersetzungen können Fehler enthalten.", 12, muted));
         updateDirection(germanSource);
+        root.requestFocus();
     }
     void updateDirection(boolean german) {
         germanSource = german;
         direction.setText(german ? "Deutsch   ⇄   Polski" : "Polski   ⇄   Deutsch");
         sourceLabel.setText(german ? "Deutsch · Ausgangstext" : "Polski · Ausgangstext");
         targetLabel.setText(german ? "Polski · Übersetzung" : "Deutsch · Übersetzung");
+        if (!presentation.dark()) {
+            sourceCard.setBackground(shape(color(german ? "#FCE7E0" : "#D9EEEA"), 24));
+            targetCard.setBackground(shape(color(german ? "#D9EEEA" : "#FCE7E0"), 24));
+            sourceLabel.setTextColor(color(german ? "#C54B3B" : "#087D80"));
+            targetLabel.setTextColor(color(german ? "#087D80" : "#C54B3B"));
+            play.setBackground(ripple(color(german ? "#BCE0DA" : "#F5CEC2"), 28));
+        }
     }
     void setRecording(boolean running) {
         microphone.setText(running ? "Aufnahme stoppen" : "Mikrofon starten");

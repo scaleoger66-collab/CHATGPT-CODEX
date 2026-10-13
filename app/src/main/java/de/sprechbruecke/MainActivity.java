@@ -72,6 +72,10 @@ public class MainActivity extends Activity implements RecognitionListener {
 
     private void buildScreen() {
         String savedInput = input == null ? "" : input.getText().toString();
+        if (input != null) {
+            android.view.inputmethod.InputMethodManager keyboard = (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+            if (keyboard != null) keyboard.hideSoftInputFromWindow(input.getWindowToken(), 0);
+        }
         String savedHistory = history == null ? "" : history.getText().toString();
         String savedStatus = status == null ? "Sprachmodelle werden geprüft …" : status.getText().toString();
         screen = new TranslatorScreen(this, presentation, germanSource, new TranslatorScreen.Actions() {

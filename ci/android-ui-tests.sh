@@ -3,7 +3,7 @@ set -uo pipefail
 gradle --no-daemon connectedDebugAndroidTest
 test_result=$?
 mkdir -p app/build/reports/screenshots
-adb pull /sdcard/Android/data/de.sprechbruecke/files/screenshots/. app/build/reports/screenshots || true
+adb pull /data/local/tmp/sprechbruecke-screenshots/. app/build/reports/screenshots || true
 python3 - <<'PY'
 from pathlib import Path
 import base64

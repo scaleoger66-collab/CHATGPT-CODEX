@@ -1,73 +1,55 @@
 # Sprechbrücke – Android 0.3
 
-Native Android-App (Java), Android 12 oder neuer, Deutsch ↔ Polnisch.
+Deutsch ↔ Polnisch für Android 12 und neuer, mit Textübersetzung, Gesprächsmodus, Live-Sprachabschnitten und Offline-Sprachausgabe.
 
-## Neu in 0.3: zwei Designs mit passender Bedienung
+## Design und Bedienung wechseln
 
-Unter **Einstellungen (Zahnrad) → Design & Bedienung** zwischen **Design 2 · Nacht & Fokus** und **Design 3 · Dialog & Nähe** wechseln. Nacht & Fokus verwendet dunkle Karten, blaue Akzente und startet beim Designwechsel im Live-Modus. Dialog & Nähe verwendet helle Karten, Koralle/Teal und startet im Gesprächsmodus mit einer deutschen und einer polnischen Sprechtaste. Die Sprechtaste wählt automatisch die zugehörige Übersetzungsrichtung.
+**Einstellungen (Zahnrad) → Design & Bedienung → Design auswählen → Übernehmen**.
 
-In beiden Designs sind Text, Gespräch und Live über die Tabs erreichbar. Design und zuletzt gewählter Modus werden für den nächsten Start gespeichert. Ein Designwechsel beendet laufende Aufnahme und Sprachausgabe; Text, Übersetzung, Sitzungsverlauf und Stimmwahl bleiben dabei erhalten. Auf breiten Displays (ab 720 dp) stehen die Textkarten nebeneinander. Die Pegelanzeige verwendet die von Android gemeldete Mikrofonlautstärke und zeigt keine simulierte Aufnahme.
+| Design | Darstellung | Modus nach Auswahl | Sprachbedienung |
+| --- | --- | --- | --- |
+| 2 · Nacht & Fokus | Dunkel, blaue Akzente | Live | Eine Start-/Stopptaste, Sprachrichtung umschaltbar |
+| 3 · Dialog & Nähe | Hell, Koralle und Teal | Gespräch | Deutsch sprechen / Mów po polsku wählen direkt die passende Richtung |
 
-Sprachmodelle werden jetzt unter **Einstellungen → Sprachmodelle laden / prüfen** verwaltet. Die Auswahl von Offline-Stimmen ist weiterhin über **Stimme & Hörprobe** verfügbar.
+Die Tabs **Text**, **Gespräch** und **Live** stehen in beiden Designs bereit. Design und zuletzt gewählter Modus bleiben nach einem Neustart ausgewählt. Beim Designwechsel bleiben Eingabe, fertige Übersetzung, Sitzungsverlauf und Stimmwahl erhalten. Laufende Aufnahme, Übersetzung und Sprachausgabe werden beendet, damit alte Ergebnisse keinen neuen Vorgang überschreiben. Es startet keine Aufnahme automatisch.
 
-Die Version wird mit Unit-Tests, Android Lint und UI-Tests auf einem Android-15-Emulator geprüft. Die tatsächliche Spracherkennung und Sprachqualität müssen weiterhin auf dem Fold 7 getestet werden.
+Ab 720 dp Displaybreite stehen die Textkarten nebeneinander; auf schmalen Displays untereinander. Die Seite ist auch mit vergrößerter Schrift scrollbar. Die Pegelanzeige nutzt Androids gemeldete Mikrofonlautstärke.
 
-## Neu in 0.2
+## Offline einrichten
 
-Unter **Stimme & Hörprobe** lassen sich installierte Anbieter (z. B. Samsung und Google), Offline-Stimmen für die aktuelle Zielsprache und das Sprechtempo auswählen. Die Auswahl wird pro Anbieter und Sprache gespeichert. Eine Hörprobe verwendet einen festen deutschen bzw. polnischen Text. Der automatische Modus priorisiert die vom Anbieter gemeldete Qualität; das ist keine Garantie für natürlichere Aussprache. Netzwerkstimmen und als nicht installiert gemeldete Stimmen werden ausgeschlossen.
+1. Unter **Einstellungen → Sprachmodelle laden / prüfen** einmalig mit Internet die Übersetzungsmodelle laden.
+2. In Androids Spracheinstellungen Offline-Erkennung für Deutsch und Polnisch installieren, sofern das Gerät bzw. der Dienst beide Sprachen unterstützt.
+3. Unter **Stimme & Hörprobe** Anbieter und Offline-Stimme für die aktuelle Zielsprache auswählen. Über **Sprachpakete installieren** fehlende Stimmen laden. Optional Google-Sprachausgabe über den angebotenen Play-Store-Link installieren und mit Samsung vergleichen.
+4. Danach im Flugmodus Text, Mikrofon und Vorlesen in beiden Richtungen ausprobieren.
 
-Zum Vergleichen Google-Sprachausgabe über den Play Store installieren, als Anbieter wählen und unter **Sprachpakete installieren** Polnisch herunterladen. Danach mit der Hörprobe vergleichen. Ohne passende Stimme wird ein Hinweis angezeigt.
+Anbieter, Stimme pro Sprache/Anbieter und Sprechtempo werden gespeichert. Automatische Stimmauswahl bevorzugt die vom Anbieter gemeldete Qualität; das garantiert keine natürlichere Aussprache. Netzwerkstimmen und als nicht installiert markierte Stimmen sind ausgeschlossen.
 
-Der [Build von 0.2](https://github.com/scaleoger66-collab/CHATGPT-CODEX/actions/runs/38343653438) inklusive Unit-Tests, Android Lint und APK-Signaturprüfung war erfolgreich. [Version 0.2 herunterladen](https://github.com/scaleoger66-collab/CHATGPT-CODEX/actions/runs/38343653438/artifacts/11787603916). Der Gerätetest der Stimmwahl und ein Hörvergleich stehen noch aus. Bei einem Signaturkonflikt mit 0.1 ist vor der Installation eine Deinstallation nötig; dabei gehen die heruntergeladenen Übersetzungsmodelle verloren.
+## Umfang und Grenzen
 
-## Erste Testversion installieren
+- ML Kit übersetzt lokal nach dem Modelldownload. Whisper, Qwen und Piper sind noch nicht integriert.
+- Gespräch: eine Äußerung erkennen, übersetzen und auf Wunsch vorlesen. Die andere Sprechtaste wählt die Gegenrichtung.
+- Live: abgeschlossene Sprachabschnitte übersetzen. Während Übersetzung und Neustart entstehen Aufnahmeunterbrechungen. Vorlesen beendet die Aufnahme.
+- Mikrofon verwendet ausschließlich Androids `createOnDeviceSpeechRecognizer`, ohne Cloud-Fallback. Fehlende Sprachunterstützung wird angezeigt.
+- Texte bis 5.000 Zeichen; Vorlesen unterliegt zusätzlich der Längenbegrenzung des Android-Sprachdienstes.
+- Gesprächsverlauf bleibt in der Sitzung und wird bei Activity-Neuerstellung, z. B. beim Aufklappen, wiederhergestellt. Keine dauerhafte Gesprächsdatenbank.
+- Mikrofon stoppt beim Verlassen der App. Übersetzungsqualität und Spracherkennung müssen auf dem echten Gerät geprüft werden.
+- INTERNET wird für Modelldownloads benötigt. Die SDK-Bedingungen von ML Kit gelten, einschließlich möglicher Diagnose-/Nutzungsdaten.
 
-[Sprechbrücke 0.1 herunterladen (GitHub-Artefakt, ca. 31 MB)](https://github.com/scaleoger66-collab/CHATGPT-CODEX/actions/runs/38342481631/artifacts/11787333143). Für den Download bei GitHub anmelden. Dieser Build ist bis zum 27. Oktober 2026 verfügbar; danach den Workflow erneut starten.
+## APK bauen und installieren
 
-ZIP in Samsungs „Eigene Dateien“ entpacken und `Sprechbruecke-v0.1-debug.apk` öffnen. Falls Android nachfragt, die Installation für die verwendete Dateien-App erlauben. Danach Sprechbrücke öffnen und einmalig mit Internet die Sprachmodelle laden.
+[GitHub Actions](https://github.com/scaleoger66-collab/CHATGPT-CODEX/actions/workflows/android.yml) baut auf Push sowie manuell über **Run workflow**. Nach erfolgreichem Lauf das Artefakt **Sprechbruecke-v0.3-Android** herunterladen. Bei GitHub anmelden, ZIP in Samsungs **Eigene Dateien** entpacken, `Sprechbruecke-v0.3-debug.apk` öffnen. Falls erforderlich Installation für die Dateien-App erlauben. Artefakte bleiben 14 Tage verfügbar.
 
-## Umfang
+0.3 ist eine Debug-Testversion. Bei einem Signaturkonflikt mit älteren Versionen muss die alte App vor der Installation deinstalliert werden; dabei gehen heruntergeladene Modelle und Einstellungen verloren. Ab 0.3 wird der Testsignaturschlüssel im GitHub-Actions-Cache wiederverwendet, solange dieser Cache verfügbar bleibt. Für eine Produktionsveröffentlichung ist ein dauerhaft verwalteter Release-Schlüssel erforderlich.
 
-- Texteingabe und lokale Übersetzung mit Google ML Kit.
-- Gesprächsmodus: eine Äußerung aufnehmen, übersetzen, optional vorlesen; Richtung für die andere Person umschalten.
-- Live-Modus: erkannte Sprachabschnitte übersetzen und Erkennung wieder starten. Keine simultane Wort-für-Wort-Übersetzung. Während der Übersetzung entstehen Aufnahmeunterbrechungen; in diesen Pausen Gesprochenes wird nicht erfasst.
-- Vorlesen über installierte Android-Offline-Stimmen. Im Live-Modus erfolgt keine automatische Sprachausgabe; manuelles Vorlesen beendet die Aufnahme.
-- Verlauf nur im Arbeitsspeicher; Mikrofon wird beim Verlassen der App gestoppt.
+## Entwicklung und Prüfungen
 
-## Offline-Einrichtung
-
-1. App mit Internet starten und „Sprachmodelle laden / prüfen“ antippen. Bei Richtungswechsel ebenfalls prüfen. Bereits installierte Modelle benötigen keinen erneuten Download.
-2. In Androids Spracheinstellungen Offline-Spracherkennung für Deutsch und Polnisch sowie Offline-Stimmen installieren, sofern das Gerät dies unterstützt. Installierte Übersetzungsmodelle werden beim App-Start automatisch erkannt.
-3. Mikrofonberechtigung erteilen und im Flugmodus beide Richtungen, Text, Gespräch und Live prüfen.
-
-Das Mikrofon verwendet ausschließlich `createOnDeviceSpeechRecognizer`, ohne Cloud-Fallback. Nicht jedes Android-Gerät unterstützt beide Sprachen offline. Bei fehlender Unterstützung bleibt die Textübersetzung verfügbar. Die INTERNET-Berechtigung wird für Modelldownloads benötigt. ML Kit kann gemäß den SDK-Bedingungen Diagnose-/Nutzungsdaten verarbeiten; eine vollständige Aussage zur Netzwerkkommunikation erfordert weitere Prüfung.
-
-ML Kit übersetzt Texte, liefert aber keine separate Grammatikprüfung und erzeugt keine inhaltlichen Chat-Antworten. Übersetzungsqualität und Kontextverständnis sind begrenzt; für diese Funktionen wäre ein zusätzliches lokales Sprachmodell mit eigener Laufzeit und passender Hardware erforderlich.
-
-## APK mit GitHub Actions bauen
-
-Das Projekt enthält `.github/workflows/android.yml`. Nach dem Hochladen der Projektdateien in ein freigegebenes GitHub-Repository baut jeder Push auf `main`, `master` oder `codex/**` die App. Der Workflow lässt sich außerdem über **Actions → Android APK → Run workflow** starten.
-
-Der Build installiert Java 17, Android SDK 35 und Gradle 8.11.1, führt Unit-Tests und Android Lint aus und prüft die APK-Signatur. Bei Erfolg erscheint im Workflow-Lauf unter **Artifacts** der Download **Sprechbruecke-v0.1-Android**. Darin liegen die signierte Test-APK und ihre SHA-256-Prüfsumme. Der Download ist 14 Tage verfügbar.
-
-Das Repository benötigt aktivierte GitHub Actions; die Verbindung zum Hochladen muss auch Workflow-Dateien schreiben dürfen. Es sind keine API-Schlüssel nötig. Die APK ist eine Debug-Version für erste Gerätetests. Verschiedene Builds können unterschiedliche Debug-Signaturen haben; dann muss die vorherige App vor der Installation deinstalliert werden, wobei heruntergeladene Modelle verloren gehen.
-
-## Lokal bauen
-
-Ordner in Android Studio öffnen, JDK 17 oder neuer und Android SDK 35 installieren, Gradle 8.11.1 auswählen und das Projekt synchronisieren. Android Gradle Plugin: 8.9.2. Es liegt noch kein Gradle Wrapper bei.
-
-Mit lokal installiertem Gradle:
+Java 17, Android SDK 35, Android Gradle Plugin 8.9.2 und Gradle 8.11.1. Projekt in Android Studio öffnen oder mit installiertem Gradle bauen; derzeit kein Gradle Wrapper im Projekt.
 
 ```sh
 gradle testDebugUnitTest lintDebug assembleDebug
+gradle connectedDebugAndroidTest
 ```
 
-APK danach: `app/build/outputs/apk/debug/app-debug.apk`.
+Der Workflow prüft zusätzlich auf einem Android-15-Emulator den Designwechsel über Einstellungen, passende Bedienelemente, Erhalt von Eingaben und Verlauf, Neustart sowie die zwei Sprachrichtungen. Screenshots und Testberichte werden als **Android-test-reports** abgelegt. Der APK-Download wird erst nach erfolgreicher Prüfung und Signaturverifikation erstellt.
 
-## Verifikation
-
-Der [GitHub-Build vom 13. Oktober 2026](https://github.com/scaleoger66-collab/CHATGPT-CODEX/actions/runs/38342481631) war erfolgreich: `testDebugUnitTest`, `lintDebug`, `assembleDebug` und die APK-Signaturprüfung sind durchgelaufen. Gebauter Commit: `37468417845314f14eee985cf7da13c9c6dcb5e1`. Ein Test auf einem echten Android-Gerät steht noch aus; Build-Erfolg bestätigt nicht die Erkennungs- oder Übersetzungsqualität.
-
-Für den Fold-7-Test: beide Übersetzungsrichtungen im Flugmodus, Mikrofonberechtigung ablehnen/erlauben, Aufnahme stoppen und erneut starten, Sprachrichtung wechseln, App in den Hintergrund schicken sowie Auf-/Zuklappen während Texteingabe und Aufnahme prüfen. Aufnahme wird bei Unterbrechungen gestoppt; Text und Verlauf werden bei einer Activity-Neuerstellung wiederhergestellt. Verzögerte Ergebnisse abgebrochener Vorgänge dürfen keine neueren Ergebnisse überschreiben.
-
-Whisper, Qwen und Piper sind in 0.1 noch nicht integriert. Die erste Version nutzt ML Kit und Androids lokale Sprachdienste. Sie ist eine Grundlage für Gerätetests, keine Zusicherung fehlerfreier oder durchgehend simultaner Übersetzung.
+Auf dem Fold 7 zusätzlich prüfen: beide Designs geschlossen und aufgeklappt, vergrößerte Schrift, Aufnahme abbrechen, Design während einer Aufnahme wechseln, beide Offline-Sprachen und Stimmen sowie längere Gespräche. Emulator-Tests belegen keine reale Mikrofon- oder Übersetzungsqualität.
