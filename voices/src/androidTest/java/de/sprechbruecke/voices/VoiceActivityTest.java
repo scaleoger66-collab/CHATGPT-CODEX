@@ -1,6 +1,7 @@
 package de.sprechbruecke.voices;
 
 import android.content.Intent;
+import android.provider.Settings;
 import android.speech.tts.TextToSpeech;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,9 +22,18 @@ import static org.junit.Assert.*;
 
 @RunWith(AndroidJUnit4.class)
 public class VoiceActivityTest {
-    private Locale original;
-    @Before public void useGermanSystemLocale() { original=Locale.getDefault(); Locale.setDefault(Locale.GERMANY); }
-    @After public void restoreLocale() { Locale.setDefault(original); }
+    private String original;
+    @Before public void useGermanStartupLocale() {
+        original=Settings.Secure.getString(ApplicationProvider.getApplicationContext().getContentResolver(),"tts_default_locale");
+        setStartupLocale("de.sprechbruecke.voices:de-DE");
+    }
+    @After public void restoreLocale() { setStartupLocale(original); }
+    private void setStartupLocale(String value) {
+        android.app.UiAutomation automation=InstrumentationRegistry.getInstrumentation().getUiAutomation();
+        automation.adoptShellPermissionIdentity(android.Manifest.permission.WRITE_SECURE_SETTINGS);
+        try { assertTrue(Settings.Secure.putString(ApplicationProvider.getApplicationContext().getContentResolver(),"tts_default_locale",value)); }
+        finally { automation.dropShellPermissionIdentity(); }
+    }
     @Test public void launcherOpensWithoutModelsAndSurvivesRecreation() throws Exception {
         Intent launch=ApplicationProvider.getApplicationContext().getPackageManager().getLaunchIntentForPackage("de.sprechbruecke.voices");
         assertNotNull(launch);
@@ -36,18 +46,19 @@ public class VoiceActivityTest {
         }
     }
     @Test public void translatorInstallActionOpensManager() throws Exception {
-        Locale.setDefault(Locale.forLanguageTag("pl-PL"));
+        setStartupLocale("de.sprechbruecke.voices:pl-PL");
         Intent launch=new Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA).setPackage("de.sprechbruecke.voices").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         try(ActivityScenario<VoiceActivity> scenario=ActivityScenario.launch(launch)) { assertSpeechServiceStarts(Locale.forLanguageTag("pl-PL")); scenario.onActivity(this::assertManager); }
     }
     private void assertSpeechServiceStarts(Locale language) throws Exception {
-        assertEquals(language.getLanguage(),Locale.getDefault().getLanguage());
+        assertEquals("de.sprechbruecke.voices:"+language.toLanguageTag(),Settings.Secure.getString(ApplicationProvider.getApplicationContext().getContentResolver(),"tts_default_locale"));
         CountDownLatch initialized=new CountDownLatch(1);
         AtomicInteger result=new AtomicInteger(-99);
         TextToSpeech speech=new TextToSpeech(ApplicationProvider.getApplicationContext(),status->{result.set(status);initialized.countDown();},"de.sprechbruecke.voices");
         try {
             assertTrue("Voice service must finish initialization",initialized.await(20,TimeUnit.SECONDS));
             assertEquals(TextToSpeech.SUCCESS,result.get());
+            assertEquals(language.getISO3Language(),speech.getLanguage().getISO3Language());
             int available=speech.isLanguageAvailable(language);
             assertTrue("Language callback must work even before downloading a model",available==TextToSpeech.LANG_MISSING_DATA || available>=TextToSpeech.LANG_AVAILABLE);
         } finally { speech.shutdown(); }
