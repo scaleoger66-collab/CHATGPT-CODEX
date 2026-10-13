@@ -1,6 +1,6 @@
-Sprechbrücke 0.5 + Sprechbrücke Stimmen 0.1
+Sprechbrücke 0.5 + Sprechbrücke Stimmen 0.2
 
-1. Beide APKs installieren: Sprechbruecke-v0.5-debug.apk und Sprechbruecke-Stimmen-v0.1.apk.
+1. Beide APKs installieren: Sprechbruecke-v0.5-debug.apk und Sprechbruecke-Stimmen-v0.2.apk.
 2. Sprechbrücke öffnen → Stimme & Hörprobe → Stimmen herunterladen / verwalten.
 3. Im Stimmen-Modul „Alle drei Stimmen herunterladen“ wählen (ca. 250 MB). Währenddessen App geöffnet lassen. Einzelne Downloads sind ebenfalls möglich.
 4. Zurück zu Sprechbrücke → Stimme & Hörprobe → Polnische Stimme: Gosia oder Darkman auswählen.

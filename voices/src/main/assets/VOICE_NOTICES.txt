@@ -1,4 +1,4 @@
-Sprechbrücke Stimmen 0.1
+Sprechbrücke Stimmen 0.2
 Copyright (c) 2026 Sprechbrücke contributors.
 Dieses eigenständige Sprachmodul ist freie Software unter GNU GPL Version 3. Es wird ohne Gewährleistung bereitgestellt. Du darfst es unter dieser Lizenz weitergeben und ändern. Der vollständige Lizenztext folgt unten.
 Quellcode und Bauanleitung: https://github.com/scaleoger66-collab/CHATGPT-CODEX/tree/main/voices

@@ -13,7 +13,12 @@ public class PiperTtsService extends TextToSpeechService {
     private final Object engineLock=new Object();
     private OfflineTts engine;
     private String loaded="";
-    @Override public void onCreate() { super.onCreate(); models=PiperModels.get(this); }
+    @Override public void onCreate() {
+        // TextToSpeechService.onCreate calls our onLoadLanguage for the system locale.
+        // Initialize everything used by that callback BEFORE entering the superclass.
+        models=PiperModels.get(this);
+        super.onCreate();
+    }
     private String language(String value) {
         if("deu".equals(value)||"ger".equals(value)||"de".equals(value))return "de";
         if("pol".equals(value)||"pl".equals(value))return "pl";

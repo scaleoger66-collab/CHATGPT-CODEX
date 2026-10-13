@@ -1,0 +1,9 @@
+Sprechbrücke Stimmen 0.2 – Startfehler behoben
+
+1. ZIP entpacken und Sprechbruecke-Stimmen-v0.2.apk öffnen.
+2. Die vorhandene Stimmen-App aktualisieren. Nicht vorher deinstallieren; vorhandene Sprachpakete bleiben beim Update erhalten.
+3. Sprechbrücke Stimmen öffnen und die gewünschten Stimmen herunterladen.
+4. Der Übersetzer 0.5 kann unverändert weiterverwendet werden.
+
+Dieses Update initialisiert die Modelldaten vor Androids Sprachabfrage beim Dienststart. Starttests prüfen Deutsch und Polnisch sowie das Öffnen aus dem Übersetzer.
+Quellcode und Lizenzhinweise: https://github.com/scaleoger66-collab/CHATGPT-CODEX/tree/main/voices

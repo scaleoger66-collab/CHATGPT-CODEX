@@ -10,11 +10,17 @@ import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import org.junit.Test;
+import org.junit.Before;
+import org.junit.After;
+import java.util.Locale;
 import org.junit.runner.RunWith;
 import static org.junit.Assert.*;
 
 @RunWith(AndroidJUnit4.class)
 public class VoiceActivityTest {
+    private Locale original;
+    @Before public void useGermanSystemLocale() { original=Locale.getDefault(); Locale.setDefault(Locale.GERMANY); }
+    @After public void restoreLocale() { Locale.setDefault(original); }
     @Test public void launcherOpensWithoutModelsAndSurvivesRecreation() throws Exception {
         Intent launch=ApplicationProvider.getApplicationContext().getPackageManager().getLaunchIntentForPackage("de.sprechbruecke.voices");
         assertNotNull(launch);
@@ -26,9 +32,10 @@ public class VoiceActivityTest {
             scenario.onActivity(this::assertManager);
         }
     }
-    @Test public void translatorInstallActionOpensManager() {
+    @Test public void translatorInstallActionOpensManager() throws Exception {
+        Locale.setDefault(Locale.forLanguageTag("pl-PL"));
         Intent launch=new Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA).setPackage("de.sprechbruecke.voices").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        try(ActivityScenario<VoiceActivity> scenario=ActivityScenario.launch(launch)) { scenario.onActivity(this::assertManager); }
+        try(ActivityScenario<VoiceActivity> scenario=ActivityScenario.launch(launch)) { Thread.sleep(2000); scenario.onActivity(this::assertManager); }
     }
     private void assertManager(VoiceActivity activity) {
         View root=activity.getWindow().getDecorView();
