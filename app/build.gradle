@@ -6,6 +6,12 @@ android {
         applicationId 'de.sprechbruecke'; minSdk 31; targetSdk 35; versionCode 4; versionName '0.4'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
+    signingConfigs {
+        debug {
+            def ciKey = System.getenv('SPRECHBRUECKE_DEBUG_KEYSTORE')
+            if (ciKey != null) storeFile file(ciKey)
+        }
+    }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
 dependencies {

@@ -3,3 +3,5 @@ local.properties
 build/
 app/build/
 .idea/
+
+.debug-signing/
