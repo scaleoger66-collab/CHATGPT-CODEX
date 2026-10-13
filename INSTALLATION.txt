@@ -1,7 +1,7 @@
 Version 0.7: Größere Schrift und Symbole. Die System-Schriftvergrößerung wird innerhalb von Sprechbrücke einschließlich Einstellungen ignoriert. Die Bildschirm-Pixeldichte bestimmt die Umrechnung der festen App-Größen; Displaybreite bestimmt das Layout.
 
 Update 0.7: Bei bereits installierter App nur Sprechbruecke-v0.7-debug.apk aktualisieren. Nicht deinstallieren. Die drei Vorlesestimmen bleiben erhalten.
-Danach Einstellungen → Mikrofon: Polnisch offline einrichten → Herunterladen (53 MB). Alternativ Mów po polsku antippen. Für diesen einmaligen Download Internet einschalten und die App geöffnet lassen. Anschließend erneut Mów po polsku antippen.
+Bereits geladene Mikrofon- und Übersetzungsmodelle bleiben erhalten. Falls das polnische Mikrofon noch nicht eingerichtet wurde: Einstellungen → Mikrofon: Polnisch offline einrichten → Herunterladen (53 MB). Nur für diesen erstmaligen Download Internet einschalten und die App geöffnet lassen.
 
 Sprechbrücke 0.7 + Sprechbrücke Stimmen 0.2
 

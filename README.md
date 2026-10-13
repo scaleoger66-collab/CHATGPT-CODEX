@@ -1,5 +1,12 @@
 # Sprechbrücke 0.7 · feste App-Schriftgrößen
 
+[**Version 0.7 herunterladen (ZIP, ca. 53 MB)**](https://github.com/scaleoger66-collab/CHATGPT-CODEX/actions/runs/38436383607/artifacts/11834105719)
+
+`Sprechbruecke-v0.7-debug.apk` über die vorhandene Haupt-App installieren. Nicht deinstallieren. Vorhandene Stimmen und Sprachmodelle bleiben erhalten; Stimmen-Modul 0.2 benötigt kein Update.
+
+Geprüft: [Android-15-Testlauf](https://github.com/scaleoger66-collab/CHATGPT-CODEX/actions/runs/38436383607), beide Designs bei 360/750 dp und Systemschrift 0,8/1,0/2,0. Im Screenshot-Vergleich der Gesprächsansicht bei 360 dp ist der gesamte App-Inhalt bei 0,8 und 2,0 pixelgleich; Unterschiede liegen ausschließlich in der Android-Statusleiste. APK-Signatur entspricht dem bisherigen Testschlüssel.
+
+
 Größere Schrift und Symbole, unabhängig von der Android-Systemschrift (80 %, 100 %, 200 %). Die verfügbare Fensterauflösung wird ausgelesen und über die Displaydichte in logische Größen umgerechnet. Dadurch bleiben Beschriftungen auf unterschiedlich dichten Smartphones vergleichbar groß. Das aufgeklappte Display ändert das Layout, nicht die Schriftgröße. Einstellungen und App-Dialoge verwenden ebenfalls Schriftfaktor 1.
 
 Neue Größen: Beschriftungen 16 dp, Hinweise 14 dp, Übersetzung 24 dp; Mikrofon-Symbol 40 dp, Reiter und Zeilensymbole 24 dp. Schmale Fenster bleiben scrollbar. Android-eigene Berechtigungsdialoge und die eigenständige Stimmen-App werden vom jeweiligen System bzw. ihrer eigenen App dargestellt.
