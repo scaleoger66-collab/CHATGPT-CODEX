@@ -1,0 +1,16 @@
+name: Polish model verification
+on:
+  push:
+    paths: ['.github/workflows/polish-model.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl --fail --location --retry 3 https://alphacephei.com/vosk/models/vosk-model-small-pl-0.22.zip -o model.zip
+          sha256sum model.zip
+          stat -c %s model.zip
+          unzip -l model.zip
