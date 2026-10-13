@@ -38,14 +38,14 @@ jobs:
         run: |
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose app/build/outputs/apk/debug/app-debug.apk
           cd app/build/outputs/apk/debug
-          mv app-debug.apk Sprechbruecke-v0.1-debug.apk
-          sha256sum Sprechbruecke-v0.1-debug.apk > SHA256SUMS.txt
+          mv app-debug.apk Sprechbruecke-v0.2-debug.apk
+          sha256sum Sprechbruecke-v0.2-debug.apk > SHA256SUMS.txt
       - name: Downloadable APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sprechbruecke-v0.1-Android
+          name: Sprechbruecke-v0.2-Android
           path: |
-            app/build/outputs/apk/debug/Sprechbruecke-v0.1-debug.apk
+            app/build/outputs/apk/debug/Sprechbruecke-v0.2-debug.apk
             app/build/outputs/apk/debug/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 14

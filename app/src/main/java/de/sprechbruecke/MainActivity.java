@@ -2,7 +2,10 @@ package de.sprechbruecke;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.net.Uri;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -21,6 +24,9 @@ import com.google.mlkit.common.model.DownloadConditions;
 import com.google.mlkit.nl.translate.*;
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.List;
+import java.util.Set;
+import android.speech.tts.Voice;
 
 /** Offline translation; microphone never falls back to a cloud recognizer. */
 public class MainActivity extends Activity implements RecognitionListener {
@@ -29,6 +35,11 @@ public class MainActivity extends Activity implements RecognitionListener {
     private SpeechRecognizer recognizer;
     private TextToSpeech speech;
     private TextView status, output, history;
+    private TextView voiceInfo;
+    private SharedPreferences voiceSettings;
+    private String activeEngine = "";
+    private final OperationEpoch speechEngines = new OperationEpoch();
+    private boolean refreshSpeechOnResume;
     private EditText input;
     private Button microphone, direction;
     private Switch live, readAloud;
@@ -41,6 +52,7 @@ public class MainActivity extends Activity implements RecognitionListener {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        voiceSettings = getSharedPreferences("voices", MODE_PRIVATE);
         ScrollView scroll = new ScrollView(this);
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL); layout.setPadding(28, 36, 28, 28);
@@ -55,7 +67,7 @@ public class MainActivity extends Activity implements RecognitionListener {
         direction = button(layout, "Deutsch → Polski", v -> {
             stop(); germanSource = !germanSource;
             direction.setText(germanSource ? "Deutsch → Polski" : "Polski → Deutsch");
-            lastTranslation = ""; output.setText(""); configureTranslator();
+            lastTranslation = ""; output.setText(""); configureTranslator(); updateVoiceInfo();
         });
         button(layout, "Sprachmodelle laden / prüfen", v -> { stop(); download(); });
         live = new Switch(this); live.setText("Live-Modus · fortlaufende Sprachabschnitte"); layout.addView(live);
@@ -77,19 +89,11 @@ public class MainActivity extends Activity implements RecognitionListener {
         button(layout, "Text übersetzen", v -> { stop(); translate(input.getText().toString().trim(), false); });
         output = label(layout, ""); output.setTextSize(22); output.setTextIsSelectable(true);
         button(layout, "Übersetzung vorlesen", v -> { stop(); speak(lastTranslation); });
-        button(layout, "Sprachausgabe installieren", v -> {
-            try { startActivity(new Intent("com.android.settings.TTS_SETTINGS")); }
-            catch (android.content.ActivityNotFoundException e) { status.setText("Bitte Android-Einstellungen → Sprache → Sprachausgabe öffnen."); }
-        });
+        voiceInfo = label(layout, "Sprachausgabe wird geladen …");
+        button(layout, "Stimme & Hörprobe", v -> showSpeechOptions());
         label(layout, "Gesprächsverlauf · nur für diese Sitzung"); history = label(layout, ""); history.setTextIsSelectable(true);
         button(layout, "Verlauf löschen", v -> { stop(); history.setText(""); input.setText(""); output.setText(""); lastTranslation = ""; status.setText("Verlauf gelöscht."); });
         label(layout, "Offline nach Sprachpaket-Download. Live übersetzt einzelne Sprachabschnitte und pausiert dabei die Aufnahme. Warte auf ‚Höre zu‘, bevor du weitersprichst. Zum Antworten die Sprachrichtung wechseln. Text: maximal 5.000 Zeichen. Übersetzungen können Fehler enthalten.");
-        speech = new TextToSpeech(this, result -> { speechReady = result == TextToSpeech.SUCCESS; });
-        speech.setOnUtteranceProgressListener(new UtteranceProgressListener() {
-            @Override public void onStart(String id) {}
-            @Override public void onDone(String id) { runOnUiThread(() -> { if (!destroyed && id.equals(Long.toString(utterances.current()))) status.setText("Bereit."); }); }
-            @Override public void onError(String id) { runOnUiThread(() -> { if (!destroyed && id.equals(Long.toString(utterances.current()))) status.setText("Sprachausgabe fehlgeschlagen. Offline-Stimme prüfen."); }); }
-        });
         if (state != null) {
             germanSource = state.getBoolean("germanSource", true);
             direction.setText(germanSource ? "Deutsch → Polski" : "Polski → Deutsch");
@@ -100,6 +104,119 @@ public class MainActivity extends Activity implements RecognitionListener {
             readAloud.setChecked(state.getBoolean("readAloud", true));
         }
         configureTranslator();
+        initializeSpeech();
+    }
+
+    private String voiceKey() { return "voice:" + activeEngine + ":" + target().getLanguage(); }
+    private void initializeSpeech() {
+        final long epoch = speechEngines.advance();
+        speechReady = false;
+        if (speech != null) { speech.stop(); speech.shutdown(); }
+        String requested = voiceSettings.getString("engine", "");
+        voiceInfo.setText("Sprachausgabe wird geladen …");
+        // Post even if initialization fails synchronously: speech must be assigned first.
+        TextToSpeech.OnInitListener init = result -> new Handler(Looper.getMainLooper()).post(() -> {
+            if (destroyed || !speechEngines.accepts(epoch)) return;
+            speechReady = result == TextToSpeech.SUCCESS;
+            if (speechReady && !requested.isEmpty()) {
+                boolean found = false;
+                for (TextToSpeech.EngineInfo engine : speech.getEngines()) found |= requested.equals(engine.name);
+                if (!found) speechReady = false;
+            }
+            activeEngine = requested.isEmpty() ? speech.getDefaultEngine() : requested;
+            if (activeEngine == null) activeEngine = "";
+            updateVoiceInfo();
+        });
+        speech = requested.isEmpty() ? new TextToSpeech(this, init) : new TextToSpeech(this, init, requested);
+        speech.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+            @Override public void onStart(String id) {}
+            @Override public void onDone(String id) { runOnUiThread(() -> { if (!destroyed && id.equals(Long.toString(utterances.current()))) status.setText("Bereit."); }); }
+            @Override public void onError(String id) { runOnUiThread(() -> { if (!destroyed && id.equals(Long.toString(utterances.current()))) status.setText("Sprachausgabe fehlgeschlagen. Offline-Sprachpaket prüfen."); }); }
+        });
+    }
+    private List<OfflineVoiceChoice> offlineVoices() {
+        List<OfflineVoiceChoice> all = new ArrayList<>();
+        if (speechReady && speech.getVoices() != null) for (Voice voice : speech.getVoices()) {
+            Set<String> features = voice.getFeatures();
+            all.add(new OfflineVoiceChoice(voice.getName(), voice.getLocale().getLanguage(),
+                voice.getLocale().toLanguageTag(), voice.getQuality(), voice.isNetworkConnectionRequired(),
+                features == null || !features.contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED)));
+        }
+        return OfflineVoiceChoice.available(all, target().getLanguage());
+    }
+    private String engineLabel() {
+        if (speech != null) for (TextToSpeech.EngineInfo engine : speech.getEngines())
+            if (engine.name.equals(activeEngine)) return engine.label;
+        return activeEngine;
+    }
+    private void updateVoiceInfo() {
+        if (voiceInfo == null) return;
+        if (!speechReady) { voiceInfo.setText("Sprachausgabe nicht bereit. Unter ‚Stimme & Hörprobe‘ einen Anbieter wählen."); return; }
+        OfflineVoiceChoice selected = OfflineVoiceChoice.select(offlineVoices(), voiceSettings.getString(voiceKey(), ""));
+        voiceInfo.setText(engineLabel() + " · " + (germanSource ? "Polski" : "Deutsch") + "\n"
+            + (selected == null ? "Keine passende Offline-Stimme ausgewählt oder installiert."
+            : "Offline-Stimme: " + selected.name));
+    }
+    private void showSpeechOptions() {
+        stop();
+        new AlertDialog.Builder(this).setTitle("Sprachausgabe · " + (germanSource ? "Polski" : "Deutsch"))
+            .setItems(new String[]{"Anbieter wählen (Samsung / Google …)", "Offline-Stimme auswählen", "Hörprobe abspielen", "Sprechtempo", "Sprachpakete installieren", "Google-Sprachausgabe im Play Store"}, (dialog, which) -> {
+                if (which == 0) chooseEngine();
+                if (which == 1) chooseVoice();
+                if (which == 2) previewVoice();
+                if (which == 3) chooseRate();
+                if (which == 4) installVoiceData();
+                if (which == 5) openGoogleSpeech();
+            }).setNegativeButton("Schließen", null).show();
+    }
+    private void chooseEngine() {
+        List<TextToSpeech.EngineInfo> engines = speech == null ? new ArrayList<>() : speech.getEngines();
+        String[] names = new String[engines.size() + 1]; names[0] = "Android-Standard";
+        for (int i = 0; i < engines.size(); i++) names[i + 1] = engines.get(i).label;
+        new AlertDialog.Builder(this).setTitle("Anbieter auswählen").setItems(names, (dialog, which) -> {
+            voiceSettings.edit().putString("engine", which == 0 ? "" : engines.get(which - 1).name).apply();
+            initializeSpeech();
+        }).setNegativeButton("Abbrechen", null).show();
+    }
+    private void chooseVoice() {
+        if (!speechReady) { status.setText("Bitte zuerst einen verfügbaren Sprachausgabe-Anbieter wählen."); return; }
+        List<OfflineVoiceChoice> voices = offlineVoices();
+        if (voices.isEmpty()) { status.setText("Keine Offline-Stimme für die Zielsprache. Unter ‚Stimme & Hörprobe‘ Sprachpakete installieren."); return; }
+        String[] labels = new String[voices.size() + 1];
+        labels[0] = "Automatisch · höchste gemeldete Qualität";
+        for (int i = 0; i < voices.size(); i++) labels[i + 1] = voices.get(i).name + " · " + voices.get(i).tag;
+        new AlertDialog.Builder(this).setTitle("Offline-Stimme wählen & anhören").setItems(labels, (dialog, which) -> {
+            voiceSettings.edit().putString(voiceKey(), which == 0 ? "" : voices.get(which - 1).name).apply();
+            updateVoiceInfo(); previewVoice();
+        }).setNegativeButton("Abbrechen", null).show();
+    }
+    private void previewVoice() {
+        speak(germanSource ? "Cześć! Jak się masz? Miło cię poznać. Czy możemy porozmawiać po polsku?"
+            : "Hallo! Wie geht es dir? Schön, dich kennenzulernen. Können wir auf Deutsch sprechen?");
+    }
+    private void chooseRate() {
+        String[] labels = {"Langsamer · 85 %", "Normal · 100 %", "Schneller · 110 %"};
+        float[] rates = {0.85f, 1f, 1.1f};
+        new AlertDialog.Builder(this).setTitle("Sprechtempo").setItems(labels, (dialog, which) -> {
+            voiceSettings.edit().putFloat("rate", rates[which]).apply(); previewVoice();
+        }).setNegativeButton("Abbrechen", null).show();
+    }
+    private void installVoiceData() {
+        refreshSpeechOnResume = true;
+        Intent install = new Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
+        if (!activeEngine.isEmpty()) install.setPackage(activeEngine);
+        try { startActivity(install); }
+        catch (android.content.ActivityNotFoundException e) {
+            try { startActivity(new Intent("com.android.settings.TTS_SETTINGS")); }
+            catch (android.content.ActivityNotFoundException missing) {
+                refreshSpeechOnResume = false; status.setText("Bitte Android-Einstellungen → Sprache → Sprachausgabe öffnen.");
+            }
+        }
+    }
+    private void openGoogleSpeech() {
+        refreshSpeechOnResume = true;
+        try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.google.android.tts"))); }
+        catch (android.content.ActivityNotFoundException e) { refreshSpeechOnResume = false; status.setText("Bitte Google-Sprachausgabe im Play Store suchen."); }
     }
 
     private TextView label(LinearLayout parent, String text) {
@@ -198,17 +315,16 @@ public class MainActivity extends Activity implements RecognitionListener {
             status.setText("Dieser Text ist zu lang zum Vorlesen. Bitte in kürzere Abschnitte aufteilen."); return;
         }
         if (!speechReady) { status.setText("Sprachausgabe noch nicht verfügbar."); return; }
-        if (speech.setLanguage(target()) < 0) { status.setText("Bitte eine Stimme für die Zielsprache installieren."); return; }
-        android.speech.tts.Voice voice = speech.getVoice();
-        if (voice == null || voice.isNetworkConnectionRequired()) {
-            voice = null;
-            if (speech.getVoices() != null) for (android.speech.tts.Voice candidate : speech.getVoices()) {
-                if (candidate.getLocale().getLanguage().equals(target().getLanguage()) && !candidate.isNetworkConnectionRequired()) { voice = candidate; break; }
-            }
-            if (voice == null) { status.setText("Keine Offline-Stimme installiert. Bitte in den Spracheinstellungen herunterladen."); return; }
-        }
+        OfflineVoiceChoice selected = OfflineVoiceChoice.select(offlineVoices(), voiceSettings.getString(voiceKey(), ""));
+        if (selected == null) { status.setText("Bitte unter ‚Stimme & Hörprobe‘ eine Offline-Stimme wählen oder Sprachpakete installieren."); return; }
+        Voice voice = null;
+        Set<Voice> available = speech.getVoices();
+        if (available != null) for (Voice candidate : available) if (candidate.getName().equals(selected.name)) { voice = candidate; break; }
+        if (voice == null || speech.setVoice(voice) != TextToSpeech.SUCCESS) { status.setText("Stimme nicht verfügbar. Bitte neu auswählen."); return; }
+        speech.setSpeechRate(voiceSettings.getFloat("rate", 1f));
         String utterance = Long.toString(utterances.advance());
-        if (speech.setVoice(voice) != TextToSpeech.SUCCESS || speech.speak(text, TextToSpeech.QUEUE_FLUSH, null, utterance) != TextToSpeech.SUCCESS)
+        status.setText("Lese vor …");
+        if (speech.speak(text, TextToSpeech.QUEUE_FLUSH, null, utterance) != TextToSpeech.SUCCESS)
             status.setText("Sprachausgabe konnte nicht gestartet werden.");
     }
     @Override public void onResults(Bundle results) {
@@ -253,5 +369,9 @@ public class MainActivity extends Activity implements RecognitionListener {
         state.putBoolean("live", live.isChecked()); state.putBoolean("readAloud", readAloud.isChecked());
     }
     @Override protected void onPause() { super.onPause(); stop(); }
+    @Override protected void onResume() {
+        super.onResume();
+        if (refreshSpeechOnResume) { refreshSpeechOnResume = false; initializeSpeech(); }
+    }
     @Override protected void onDestroy() { destroyed = true; stop(); if (recognizer != null) recognizer.destroy(); if (speech != null) speech.shutdown(); if (translator != null) translator.close(); super.onDestroy(); }
 }

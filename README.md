@@ -1,6 +1,14 @@
-# Sprechbrücke – Android 0.1
+# Sprechbrücke – Android 0.2
 
 Native Android-App (Java), Android 12 oder neuer, Deutsch ↔ Polnisch.
+
+## Neu in 0.2
+
+Unter **Stimme & Hörprobe** lassen sich installierte Anbieter (z. B. Samsung und Google), Offline-Stimmen für die aktuelle Zielsprache und das Sprechtempo auswählen. Die Auswahl wird pro Anbieter und Sprache gespeichert. Eine Hörprobe verwendet einen festen deutschen bzw. polnischen Text. Der automatische Modus priorisiert die vom Anbieter gemeldete Qualität; das ist keine Garantie für natürlichere Aussprache. Netzwerkstimmen und als nicht installiert gemeldete Stimmen werden ausgeschlossen.
+
+Zum Vergleichen Google-Sprachausgabe über den Play Store installieren, als Anbieter wählen und unter **Sprachpakete installieren** Polnisch herunterladen. Danach mit der Hörprobe vergleichen. Ohne passende Stimme wird ein Hinweis angezeigt.
+
+Der Build von 0.2 und der Gerätetest der Stimmwahl stehen noch aus.
 
 ## Erste Testversion installieren
 
