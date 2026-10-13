@@ -21,7 +21,7 @@ for archive in .voice-models/*.tar.bz2; do
   name=$(basename "$archive")
   adb shell "run-as de.sprechbruecke.voices sh -c 'cat > cache/$name'" < "$archive"
 done
-trap 'adb logcat -d > app/build/reports/piper/logcat.txt; head -n 1200 app/build/reports/piper/logcat.txt; adb shell svc wifi enable; adb shell svc data enable' EXIT
+trap 'adb logcat -d > app/build/reports/piper/logcat.txt; grep -E "PiperTest|PIPER_|JNI DETECTED|Abort message|F DEBUG|AndroidRuntime" app/build/reports/piper/logcat.txt || true; adb shell svc wifi enable; adb shell svc data enable' EXIT
 adb logcat -c
 adb shell svc wifi disable
 adb shell svc data disable

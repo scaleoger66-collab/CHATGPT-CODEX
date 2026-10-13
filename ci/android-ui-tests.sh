@@ -3,6 +3,13 @@ set -uo pipefail
 bash ci/piper-offline-test.sh
 piper_result=$?
 if [ "$piper_result" -ne 0 ]; then exit "$piper_result"; fi
+# Heavy native model tests can leave the emulator launcher with an ANR dialog.
+# Stop only the unrelated launcher; never dismiss errors from either tested app.
+adb shell am force-stop com.google.android.apps.nexuslauncher
+adb shell settings put system screen_off_timeout 1800000
+adb shell svc power stayon true
+adb shell input keyevent KEYCODE_WAKEUP
+adb shell wm dismiss-keyguard
 gradle --no-daemon :app:connectedDebugAndroidTest
 test_result=$?
 if [ "$piper_result" -ne 0 ]; then test_result=$piper_result; fi
