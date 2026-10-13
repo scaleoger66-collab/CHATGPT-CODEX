@@ -13,6 +13,9 @@ import org.junit.Test;
 import org.junit.Before;
 import org.junit.After;
 import java.util.Locale;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.runner.RunWith;
 import static org.junit.Assert.*;
 
@@ -26,7 +29,7 @@ public class VoiceActivityTest {
         assertNotNull(launch);
         try(ActivityScenario<VoiceActivity> scenario=ActivityScenario.launch(launch)) {
             InstrumentationRegistry.getInstrumentation().waitForIdleSync();
-            Thread.sleep(2000); // Include asynchronous TTS initialization on a fresh installation.
+            assertSpeechServiceStarts(Locale.GERMANY);
             scenario.onActivity(this::assertManager);
             scenario.recreate();
             scenario.onActivity(this::assertManager);
@@ -35,7 +38,19 @@ public class VoiceActivityTest {
     @Test public void translatorInstallActionOpensManager() throws Exception {
         Locale.setDefault(Locale.forLanguageTag("pl-PL"));
         Intent launch=new Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA).setPackage("de.sprechbruecke.voices").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        try(ActivityScenario<VoiceActivity> scenario=ActivityScenario.launch(launch)) { Thread.sleep(2000); scenario.onActivity(this::assertManager); }
+        try(ActivityScenario<VoiceActivity> scenario=ActivityScenario.launch(launch)) { assertSpeechServiceStarts(Locale.forLanguageTag("pl-PL")); scenario.onActivity(this::assertManager); }
+    }
+    private void assertSpeechServiceStarts(Locale language) throws Exception {
+        assertEquals(language.getLanguage(),Locale.getDefault().getLanguage());
+        CountDownLatch initialized=new CountDownLatch(1);
+        AtomicInteger result=new AtomicInteger(-99);
+        TextToSpeech speech=new TextToSpeech(ApplicationProvider.getApplicationContext(),status->{result.set(status);initialized.countDown();},"de.sprechbruecke.voices");
+        try {
+            assertTrue("Voice service must finish initialization",initialized.await(20,TimeUnit.SECONDS));
+            assertEquals(TextToSpeech.SUCCESS,result.get());
+            int available=speech.isLanguageAvailable(language);
+            assertTrue("Language callback must work even before downloading a model",available==TextToSpeech.LANG_MISSING_DATA || available>=TextToSpeech.LANG_AVAILABLE);
+        } finally { speech.shutdown(); }
     }
     private void assertManager(VoiceActivity activity) {
         View root=activity.getWindow().getDecorView();
