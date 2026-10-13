@@ -50,9 +50,7 @@ jobs:
           profile: pixel_2
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: |
-            gradle --no-daemon connectedDebugAndroidTest
-            adb pull /sdcard/Android/data/de.sprechbruecke/files/screenshots app/build/reports/screenshots
+          script: bash ci/android-ui-tests.sh
       - name: Verify APK signature and create checksum
         run: |
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose app/build/outputs/apk/debug/app-debug.apk

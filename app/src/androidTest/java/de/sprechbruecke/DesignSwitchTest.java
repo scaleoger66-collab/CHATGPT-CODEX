@@ -66,8 +66,9 @@ public class DesignSwitchTest {
             scenario.onActivity(a -> assertEquals("NIGHT", a.getSharedPreferences("appearance", Context.MODE_PRIVATE).getString("design", "")));
         }
     }
-    @Test public void conversationButtonsSelectTheirOwnLanguageAndHistorySurvivesThemeChange() {
+    @Test public void conversationButtonsSelectTheirOwnLanguageAndHistorySurvivesThemeChange() throws Exception {
         try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
+            screenshot("dialog-before-scroll");
             onView(withId(R.id.polish_mic)).perform(scrollTo(), click());
             onView(withText("Polski · Ausgangstext")).check(matches(withText("Polski · Ausgangstext")));
             onView(withId(R.id.german_mic)).perform(scrollTo(), click());
