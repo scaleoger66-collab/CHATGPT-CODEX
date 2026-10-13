@@ -40,7 +40,7 @@ public class PiperIntegrationTest {
                 assertTrue("Output must contain audible signal",energy/audio.getSamples().length>0.00001);
                 File wav=new File(context.getFilesDir(),voice.id+".wav"); assertTrue(audio.save(wav.getAbsolutePath()));
                 int[] callbacks={0};
-                tts.generateWithCallback(phrase+" "+phrase,0,1f,samples -> { callbacks[0]++; return 0; });
+                tts.generateWithCallback(phrase+" "+phrase,0,1f,new PiperCallback() { @Override public Integer invoke(float[] samples) { callbacks[0]++; return 0; } });
                 assertEquals("Native streaming synthesis must respect cancellation",1,callbacks[0]);
                 System.out.println("PIPER_OFFLINE_OK "+voice.name+" samples="+audio.getSamples().length);
             } finally { tts.release(); }

@@ -57,7 +57,8 @@ public class PiperTtsService extends TextToSpeechService {
                 if(callback.start(engine.sampleRate(),AudioFormat.ENCODING_PCM_16BIT,1)!=TextToSpeech.SUCCESS)return;
                 float speed=Math.max(.5f,Math.min(2f,request.getSpeechRate()/100f));
                 boolean[] failed={false};
-                engine.generateWithCallback(text,0,speed,samples -> {
+                engine.generateWithCallback(text,0,speed,new PiperCallback() {
+                    @Override public Integer invoke(float[] samples) {
                     if(epoch.get()!=token)return 0;
                     int limit=Math.max(2,callback.getMaxBufferSize() & ~1);
                     byte[] bytes=new byte[Math.min(limit,samples.length*2)];
@@ -69,6 +70,7 @@ public class PiperTtsService extends TextToSpeechService {
                         index+=count;
                     }
                     return epoch.get()==token ? 1 : 0;
+                    }
                 });
                 if(epoch.get()!=token || failed[0])callback.error(); else callback.done();
             } catch(Exception | LinkageError e) { callback.error(TextToSpeech.ERROR_SYNTHESIS); }
