@@ -2,6 +2,12 @@
 
 Native Android-App (Java), Android 12 oder neuer, Deutsch ↔ Polnisch.
 
+## Erste Testversion installieren
+
+[Sprechbrücke 0.1 herunterladen (GitHub-Artefakt, ca. 31 MB)](https://github.com/scaleoger66-collab/CHATGPT-CODEX/actions/runs/38342481631/artifacts/11787333143). Für den Download bei GitHub anmelden. Dieser Build ist bis zum 27. Oktober 2026 verfügbar; danach den Workflow erneut starten.
+
+ZIP in Samsungs „Eigene Dateien“ entpacken und `Sprechbruecke-v0.1-debug.apk` öffnen. Falls Android nachfragt, die Installation für die verwendete Dateien-App erlauben. Danach Sprechbrücke öffnen und einmalig mit Internet die Sprachmodelle laden.
+
 ## Umfang
 
 - Texteingabe und lokale Übersetzung mit Google ML Kit.
@@ -42,7 +48,7 @@ APK danach: `app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Verifikation
 
-Der Workflow ist vorbereitet, wurde aber noch nicht auf GitHub ausgeführt. Manifest und Workflow werden lokal strukturell geprüft. Die Entwicklungsumgebung hat kein Android SDK und keinen funktionierenden Zugang zum Download der Bauwerkzeuge. Es liegt deshalb noch keine geprüfte APK vor.
+Der [GitHub-Build vom 13. Oktober 2026](https://github.com/scaleoger66-collab/CHATGPT-CODEX/actions/runs/38342481631) war erfolgreich: `testDebugUnitTest`, `lintDebug`, `assembleDebug` und die APK-Signaturprüfung sind durchgelaufen. Gebauter Commit: `37468417845314f14eee985cf7da13c9c6dcb5e1`. Ein Test auf einem echten Android-Gerät steht noch aus; Build-Erfolg bestätigt nicht die Erkennungs- oder Übersetzungsqualität.
 
 Für den Fold-7-Test: beide Übersetzungsrichtungen im Flugmodus, Mikrofonberechtigung ablehnen/erlauben, Aufnahme stoppen und erneut starten, Sprachrichtung wechseln, App in den Hintergrund schicken sowie Auf-/Zuklappen während Texteingabe und Aufnahme prüfen. Aufnahme wird bei Unterbrechungen gestoppt; Text und Verlauf werden bei einer Activity-Neuerstellung wiederhergestellt. Verzögerte Ergebnisse abgebrochener Vorgänge dürfen keine neueren Ergebnisse überschreiben.
 
