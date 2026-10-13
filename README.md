@@ -2,6 +2,10 @@
 
 Deutsch ↔ Polnisch für Android 12 und neuer, mit Textübersetzung, Gesprächsmodus, Live-Sprachabschnitten und Offline-Sprachausgabe.
 
+[Version 0.3 herunterladen (ZIP mit APK, ca. 31 MB)](https://github.com/scaleoger66-collab/CHATGPT-CODEX/actions/runs/38346499966/artifacts/11789875504)
+
+Der [Build vom 13. Oktober 2026](https://github.com/scaleoger66-collab/CHATGPT-CODEX/actions/runs/38346499966) war erfolgreich: Unit-Tests, Android Lint, alle drei Android-15-Bedienungstests und APK-Signaturprüfung bestanden. Gebauter Commit: `8f1b5d07e1950fbdbbdc91a0cac14a241ef7889b`. Die Emulator-Ansichten wurden kontrolliert. Der Test auf dem Fold 7 steht noch aus.
+
 ## Design und Bedienung wechseln
 
 **Einstellungen (Zahnrad) → Design & Bedienung → Design auswählen → Übernehmen**.
