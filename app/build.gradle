@@ -3,8 +3,9 @@ android {
     namespace 'de.sprechbruecke'
     compileSdk 35
     defaultConfig {
-        applicationId 'de.sprechbruecke'; minSdk 31; targetSdk 35; versionCode 4; versionName '0.4'
+        applicationId 'de.sprechbruecke'; minSdk 31; targetSdk 35; versionCode 5; versionName '0.5'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        ndk { abiFilters 'arm64-v8a', 'x86_64' }
     }
     signingConfigs {
         debug {

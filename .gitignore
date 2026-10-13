@@ -5,3 +5,8 @@ app/build/
 .idea/
 
 .debug-signing/
+
+app/libs/*.aar
+.voice-models/
+
+voices/libs/*.aar

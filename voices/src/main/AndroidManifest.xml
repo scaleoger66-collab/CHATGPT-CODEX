@@ -1,0 +1,16 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <application android:theme="@android:style/Theme.Material.Light.NoActionBar" android:label="Sprechbrücke Stimmen" android:allowBackup="false" android:supportsRtl="true">
+        <activity android:name=".VoiceActivity" android:exported="true">
+            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+            <intent-filter><action android:name="android.speech.tts.engine.INSTALL_TTS_DATA"/><action android:name="android.speech.tts.engine.CONFIGURE_ENGINE"/><category android:name="android.intent.category.DEFAULT"/></intent-filter>
+        </activity>
+        <activity android:name=".CheckVoiceData" android:exported="true">
+            <intent-filter><action android:name="android.speech.tts.engine.CHECK_TTS_DATA"/><category android:name="android.intent.category.DEFAULT"/></intent-filter>
+        </activity>
+        <service android:name=".PiperTtsService" android:exported="true" android:label="Sprechbrücke · Gosia / Darkman / Thorsten">
+            <intent-filter><action android:name="android.intent.action.TTS_SERVICE"/><category android:name="android.intent.category.DEFAULT"/></intent-filter>
+            <meta-data android:name="android.speech.tts" android:resource="@xml/tts_engine"/>
+        </service>
+    </application>
+</manifest>

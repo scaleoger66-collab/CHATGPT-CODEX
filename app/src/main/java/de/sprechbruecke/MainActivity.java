@@ -38,6 +38,13 @@ public class MainActivity extends Activity implements RecognitionListener {
     private TextView voiceInfo;
     private SharedPreferences voiceSettings;
     private String activeEngine = "";
+    private static final String PIPER_ENGINE = "de.sprechbruecke.voices";
+    private boolean piperEnabled() { return voiceSettings.getBoolean("piperEnabled",true); }
+    private PiperVoice selectedPiper(Locale language) { return PiperVoice.forLanguage(language.getLanguage(),voiceSettings.getString("piper:pl","gosia")); }
+    private boolean piperInstalled() {
+        Intent intent=new Intent(TextToSpeech.Engine.INTENT_ACTION_TTS_SERVICE).setPackage(PIPER_ENGINE);
+        return !getPackageManager().queryIntentServices(intent,0).isEmpty();
+    }
     private final OperationEpoch speechEngines = new OperationEpoch();
     private boolean refreshSpeechOnResume;
     private EditText input;
@@ -161,7 +168,10 @@ public class MainActivity extends Activity implements RecognitionListener {
         final long epoch = speechEngines.advance();
         speechReady = false;
         if (speech != null) { speech.stop(); speech.shutdown(); }
-        String requested = voiceSettings.getString("engine", "");
+        String requested = piperEnabled() ? PIPER_ENGINE : voiceSettings.getString("engine", "");
+        if(piperEnabled() && !piperInstalled()) {
+            speech=null; activeEngine=PIPER_ENGINE; updateVoiceInfo(); return;
+        }
         voiceInfo.setText("Sprachausgabe wird geladen …");
         // Post even if initialization fails synchronously: speech must be assigned first.
         TextToSpeech.OnInitListener init = result -> new Handler(Looper.getMainLooper()).post(() -> {
@@ -201,6 +211,13 @@ public class MainActivity extends Activity implements RecognitionListener {
     }
     private void updateVoiceInfo() {
         if (voiceInfo == null) return;
+        if(piperEnabled()) {
+            PiperVoice selected=selectedPiper(target());
+            boolean available=false;
+            if(speechReady)for(OfflineVoiceChoice voice:offlineVoices())if(voice.name.equals(selected.id))available=true;
+            voiceInfo.setText(selected.name+" · "+selected.languageName()+" · "+(available ? "offline bereit" : "Stimmen-Modul öffnen / herunterladen"));
+            return;
+        }
         if (!speechReady) { voiceInfo.setText("Sprachausgabe nicht bereit. Unter ‚Stimme & Hörprobe‘ einen Anbieter wählen."); return; }
         OfflineVoiceChoice selected = OfflineVoiceChoice.select(offlineVoices(), voiceSettings.getString(voiceKey(), ""));
         voiceInfo.setText(engineLabel() + " · " + (germanSource ? "Polski" : "Deutsch") + "\n"
@@ -209,22 +226,51 @@ public class MainActivity extends Activity implements RecognitionListener {
     }
     private void showSpeechOptions() {
         stop();
-        dialog().setTitle("Sprachausgabe · " + (germanSource ? "Polski" : "Deutsch"))
-            .setItems(new String[]{"Anbieter wählen (Samsung / Google …)", "Offline-Stimme auswählen", "Hörprobe abspielen", "Sprechtempo", "Sprachpakete installieren", "Google-Sprachausgabe im Play Store"}, (dialog, which) -> {
-                if (which == 0) chooseEngine();
-                if (which == 1) chooseVoice();
-                if (which == 2) previewVoice();
-                if (which == 3) chooseRate();
-                if (which == 4) installVoiceData();
-                if (which == 5) openGoogleSpeech();
-            }).setNegativeButton("Schließen", null).show();
+        dialog().setTitle("Stimme & Hörprobe").setItems(new String[]{"Stimmen herunterladen / verwalten", "Polnische Stimme: "+selectedPiper(Locale.forLanguageTag("pl")).name,
+            "Deutsche Stimme: Thorsten High", "Sprachausgabe: "+(piperEnabled()?"Piper offline":"Android"), "Hörprobe abspielen", "Sprechtempo", "Android-Stimmen verwalten"},(d,which)->{
+            if(which==0)openPiperManager();
+            if(which==1)choosePolishVoice();
+            if(which==2) { usePiper(); speak("Hallo! Wie geht es dir? Schön, dich kennenzulernen.",Locale.forLanguageTag("de-DE")); }
+            if(which==3)chooseSpeechSystem();
+            if(which==4)previewVoice();
+            if(which==5)chooseRate();
+            if(which==6)showAndroidVoices();
+        }).setNegativeButton("Schließen",null).show();
+    }
+    private void openPiperManager() {
+        stop();
+        if(!piperInstalled()) {
+            dialog().setTitle("Stimmen-Modul installieren").setMessage("Installiere zusätzlich Sprechbruecke-Stimmen-v0.1.apk aus unserem Download-Paket. Darin kannst du Gosia, Darkman und Thorsten High herunterladen. Danach hier erneut öffnen.").setPositiveButton("OK",null).show(); return;
+        }
+        refreshSpeechOnResume=true;
+        try { startActivity(new Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA).setPackage(PIPER_ENGINE)); }
+        catch(android.content.ActivityNotFoundException e){status.setText("Bitte die App Sprechbrücke Stimmen öffnen.");}
+    }
+    private void usePiper() {
+        if(!piperEnabled()) { stop(); voiceSettings.edit().putBoolean("piperEnabled",true).apply(); initializeSpeech(); }
+    }
+    private void choosePolishVoice() {
+        dialog().setTitle("Polnische Stimme").setSingleChoiceItems(new String[]{"Gosia", "Darkman"},selectedPiper(Locale.forLanguageTag("pl"))==PiperVoice.DARKMAN?1:0,(d,which)->{
+            stop(); voiceSettings.edit().putString("piper:pl",which==0?"gosia":"darkman").apply();usePiper();updateVoiceInfo();d.dismiss();
+            speak("Cześć! Jak się masz? Miło cię poznać.",Locale.forLanguageTag("pl-PL"));
+        }).setNegativeButton("Abbrechen",null).show();
+    }
+    private void chooseSpeechSystem() {
+        dialog().setTitle("Sprachausgabe").setSingleChoiceItems(new String[]{"Piper · Gosia / Darkman / Thorsten High", "Android · andere installierte Anbieter"},piperEnabled()?0:1,(d,which)->{
+            stop();voiceSettings.edit().putBoolean("piperEnabled",which==0).apply();initializeSpeech();d.dismiss();
+        }).setNegativeButton("Abbrechen",null).show();
+    }
+    private void showAndroidVoices() {
+        dialog().setTitle("Android-Stimmen").setItems(new String[]{"Anbieter wählen", "Offline-Stimme auswählen", "Sprachpakete installieren", "Google-Sprachausgabe im Play Store"},(d,w)->{
+            if(w==0)chooseEngine();if(w==1)chooseVoice();if(w==2)installVoiceData();if(w==3)openGoogleSpeech();
+        }).setNegativeButton("Schließen",null).show();
     }
     private void chooseEngine() {
         List<TextToSpeech.EngineInfo> engines = speech == null ? new ArrayList<>() : speech.getEngines();
         String[] names = new String[engines.size() + 1]; names[0] = "Android-Standard";
         for (int i = 0; i < engines.size(); i++) names[i + 1] = engines.get(i).label;
         dialog().setTitle("Anbieter auswählen").setItems(names, (dialog, which) -> {
-            voiceSettings.edit().putString("engine", which == 0 ? "" : engines.get(which - 1).name).apply();
+            voiceSettings.edit().putBoolean("piperEnabled",false).putString("engine", which == 0 ? "" : engines.get(which - 1).name).apply();
             initializeSpeech();
         }).setNegativeButton("Abbrechen", null).show();
     }
@@ -360,9 +406,10 @@ public class MainActivity extends Activity implements RecognitionListener {
         if (text.length() > TextToSpeech.getMaxSpeechInputLength()) {
             status.setText("Dieser Text ist zu lang zum Vorlesen. Bitte in kürzere Abschnitte aufteilen."); return;
         }
-        if (!speechReady) { status.setText("Sprachausgabe noch nicht verfügbar."); return; }
-        OfflineVoiceChoice selected = OfflineVoiceChoice.select(offlineVoices(language), voiceSettings.getString("voice:" + activeEngine + ":" + language.getLanguage(), ""));
-        if (selected == null) { status.setText("Bitte unter ‚Stimme & Hörprobe‘ eine Offline-Stimme wählen oder Sprachpakete installieren."); return; }
+        if (!speechReady) { status.setText(piperEnabled() ? "Stimmen-Modul öffnen / installieren: Stimme & Hörprobe → Stimmen herunterladen / verwalten." : "Sprachausgabe noch nicht verfügbar."); return; }
+        String wanted=piperEnabled() ? selectedPiper(language).id : voiceSettings.getString("voice:" + activeEngine + ":" + language.getLanguage(), "");
+        OfflineVoiceChoice selected = OfflineVoiceChoice.select(offlineVoices(language), wanted);
+        if (selected == null) { status.setText(piperEnabled() ? selectedPiper(language).name+" fehlt. Unter Stimme & Hörprobe → Stimmen herunterladen / verwalten laden." : "Bitte unter ‚Stimme & Hörprobe‘ eine Offline-Stimme wählen oder Sprachpakete installieren."); return; }
         Voice voice = null;
         Set<Voice> available = speech.getVoices();
         if (available != null) for (Voice candidate : available) if (candidate.getName().equals(selected.name)) { voice = candidate; break; }
@@ -417,7 +464,7 @@ public class MainActivity extends Activity implements RecognitionListener {
     @Override protected void onPause() { super.onPause(); stop(); }
     @Override protected void onResume() {
         super.onResume();
-        if (refreshSpeechOnResume) { refreshSpeechOnResume = false; initializeSpeech(); }
+        if (refreshSpeechOnResume || (piperEnabled() && !speechReady && piperInstalled())) { refreshSpeechOnResume = false; initializeSpeech(); }
     }
     @Override protected void onDestroy() { destroyed = true; stop(); if (recognizer != null) recognizer.destroy(); if (speech != null) speech.shutdown(); if (translator != null) translator.close(); super.onDestroy(); }
 }

@@ -46,6 +46,8 @@ jobs:
             keytool -genkeypair -keystore "$SPRECHBRUECKE_DEBUG_KEYSTORE" -storepass android -keypass android -alias androiddebugkey -dname 'CN=Android Debug,O=Android,C=US' -keyalg RSA -keysize 2048 -validity 10000
           fi
           test -s "$SPRECHBRUECKE_DEBUG_KEYSTORE"
+      - name: Fetch pinned offline speech runtime
+        run: bash ci/fetch-sherpa.sh
       - name: Test, lint and build APK
         run: gradle --no-daemon testDebugUnitTest lintDebug assembleDebug
       - name: Enable emulator acceleration
@@ -63,16 +65,19 @@ jobs:
       - name: Verify APK signature and create checksum
         run: |
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/debug/app-debug.apk
-          cd app/build/outputs/apk/debug
-          mv app-debug.apk Sprechbruecke-v0.4-debug.apk
-          sha256sum Sprechbruecke-v0.4-debug.apk > SHA256SUMS.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs voices/build/outputs/apk/debug/voices-debug.apk
+          mkdir -p distribution
+          cp app/build/outputs/apk/debug/app-debug.apk distribution/Sprechbruecke-v0.5-debug.apk
+          cp voices/build/outputs/apk/debug/voices-debug.apk distribution/Sprechbruecke-Stimmen-v0.1.apk
+          cp voices/src/main/assets/GPL-3.0.txt voices/src/main/assets/VOICE_NOTICES.txt distribution/
+          cp INSTALLATION.txt distribution/
+          cd distribution
+          sha256sum *.apk > SHA256SUMS.txt
       - name: Downloadable APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sprechbruecke-v0.4-Android
-          path: |
-            app/build/outputs/apk/debug/Sprechbruecke-v0.4-debug.apk
-            app/build/outputs/apk/debug/SHA256SUMS.txt
+          name: Sprechbruecke-v0.5-Android
+          path: distribution/
           if-no-files-found: error
           retention-days: 14
       - name: Test and lint reports
@@ -80,5 +85,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Android-test-reports
-          path: app/build/reports/
+          path: |
+            app/build/reports/
+            voices/build/reports/
           if-no-files-found: ignore

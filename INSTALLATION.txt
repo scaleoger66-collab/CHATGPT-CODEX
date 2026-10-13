@@ -1,0 +1,15 @@
+Sprechbrücke 0.5 + Sprechbrücke Stimmen 0.1
+
+1. Beide APKs installieren: Sprechbruecke-v0.5-debug.apk und Sprechbruecke-Stimmen-v0.1.apk.
+2. Sprechbrücke öffnen → Stimme & Hörprobe → Stimmen herunterladen / verwalten.
+3. Im Stimmen-Modul „Alle drei Stimmen herunterladen“ wählen (ca. 250 MB). Währenddessen App geöffnet lassen. Einzelne Downloads sind ebenfalls möglich.
+4. Zurück zu Sprechbrücke → Stimme & Hörprobe → Polnische Stimme: Gosia oder Darkman auswählen.
+5. Deutsch verwendet Thorsten High automatisch. Unter Sprachausgabe ist Piper voreingestellt.
+6. Zum Testen Flugmodus einschalten und eine Hörprobe abspielen. Zum Übersetzen müssen zusätzlich die ML-Kit-Übersetzungsmodelle geladen sein.
+
+Stimmen bleiben im eigenständigen Stimmen-Modul gespeichert, unabhängig von der Übersetzer-App. Das Stimmen-Modul kann auch als Android-Systemsprachausgabe ausgewählt werden.
+
+Quelle/Änderungen/Buildskripte: https://github.com/scaleoger66-collab/CHATGPT-CODEX
+Quellen des unveränderten nativen Sprachmoduls: https://github.com/k2-fsa/sherpa-onnx/tree/v1.13.8
+Weitere Lizenz- und Quellenhinweise: VOICE_NOTICES.txt und GPL-3.0.txt.
+Diese APKs sind Testversionen. Bei einem vorhandenen passenden Testschlüssel bleibt ein Update von 0.4 ohne Deinstallation möglich.

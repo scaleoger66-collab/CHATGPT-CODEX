@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 set -uo pipefail
+bash ci/piper-offline-test.sh
+piper_result=$?
 gradle --no-daemon connectedDebugAndroidTest
 test_result=$?
+if [ "$piper_result" -ne 0 ]; then test_result=$piper_result; fi
 mkdir -p app/build/reports/display-matrix/baseline
 cp -R app/build/reports/androidTests app/build/reports/display-matrix/baseline/ 2>/dev/null || true
 # Device-sized windows, including Android accessibility font scaling. Always restore settings.

@@ -1,0 +1,24 @@
+Sprechbrücke Stimmen 0.1
+Copyright (c) 2026 Sprechbrücke contributors.
+Dieses eigenständige Sprachmodul ist freie Software unter GNU GPL Version 3. Es wird ohne Gewährleistung bereitgestellt. Du darfst es unter dieser Lizenz weitergeben und ändern. Der vollständige Lizenztext folgt unten.
+Quellcode und Bauanleitung: https://github.com/scaleoger66-collab/CHATGPT-CODEX/tree/main/voices
+
+Sherpa-ONNX 1.13.8: Apache-2.0, Copyright Xiaomi Corporation and contributors.
+Quellcode, Lizenztexte, Buildskripte und Drittanbieterquellen: https://github.com/k2-fsa/sherpa-onnx/tree/v1.13.8
+Das verwendete Android-AAR ist unverändert; SHA-256 siehe ci/fetch-sherpa.sh. Enthaltene ONNX-Runtime: MIT. Enthaltene eSpeak-NG-Phonemisierung: GPL-3.0-or-later.
+eSpeak NG: https://github.com/espeak-ng/espeak-ng
+Weitere durch Sherpa verwendete Quellen und Versionen: https://github.com/k2-fsa/sherpa-onnx/tree/v1.13.8/cmake
+Kotlin-stdlib 2.1.21: Apache-2.0, JetBrains.
+Apache Commons Compress 1.27.1 und Commons IO 2.18.0: Apache-2.0, Apache Software Foundation.
+
+Die Stimmenpakete werden separat vom Sherpa-ONNX-Projekt heruntergeladen und unverändert verwendet. Modelldokumentation, Trainingsdatenhinweise und Lizenzen:
+Gosia: https://huggingface.co/rhasspy/piper-voices/tree/main/pl/pl_PL/gosia/medium
+Darkman: https://huggingface.co/rhasspy/piper-voices/tree/main/pl/pl_PL/darkman/medium
+Thorsten High: https://huggingface.co/rhasspy/piper-voices/tree/main/de/de_DE/thorsten/high
+Die Modellkarten für Gosia und Darkman nennen CC0 als Datensatzlizenz. Originale Modellkarten bleiben im heruntergeladenen Paket erhalten, soweit dort enthalten.
+Thorsten-Voice-Datensätze und Lizenzhinweise: https://www.thorsten-voice.de/
+
+Downloadquelle aller drei Pakete: https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models
+Die Spracherzeugung läuft lokal. Gesprächsinhalte werden vom Sprachmodul nicht an Downloadserver gesendet.
+
+Die Übersetzer-App und dieses eigenständige Android-TTS-Modul kommunizieren über Androids standardisierte TextToSpeech-Schnittstelle. Das Sprachmodul enthält kein ML-Kit-SDK und kann auch von anderen Android-TTS-Anwendungen genutzt werden.
