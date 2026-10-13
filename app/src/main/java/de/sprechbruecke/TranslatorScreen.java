@@ -77,16 +77,24 @@ final class TranslatorScreen {
         settings.setId(R.id.settings); header.addView(settings, new LinearLayout.LayoutParams(dp(48), dp(48)));
         root.addView(header); if (fontScale > 1.3f) root.addView(modelBadge); space(root, 8);
 
-        LinearLayout tabs = row(); tabs.setPadding(dp(2), dp(2), dp(2), dp(2)); tabs.setBackground(shape(dark ? surface : color("#F0EDE7"), 28));
+        boolean stackTabs = widthDp / fontScale < 160;
+        LinearLayout tabs = row(); if (stackTabs) tabs.setOrientation(LinearLayout.VERTICAL); tabs.setPadding(dp(2), dp(2), dp(2), dp(2)); tabs.setBackground(shape(dark ? surface : color("#F0EDE7"), 28));
         String[] tabLabels = {"Text", "Gespräch", "Live"};
         int[] tabIds = {R.id.mode_text, R.id.mode_conversation, R.id.mode_live};
+        int[] tabIcons = {R.drawable.ic_text, R.drawable.ic_chat, R.drawable.ic_live};
         Presentation.Mode[] modes = Presentation.Mode.values();
         for (int i = 0; i < modes.length; i++) {
             Presentation.Mode mode = modes[i]; boolean selected = mode == presentation.mode;
             int selectedColor = !dark && mode == Presentation.Mode.CONVERSATION ? coral : accent;
             Button tab = button(tabLabels[i], selected ? selectedColor : Color.TRANSPARENT, selected ? Color.WHITE : foreground, v -> actions.mode(mode));
             tab.setId(tabIds[i]); tab.setTextSize(13 * typeFactor); tab.setSelected(selected);
-            tabs.addView(tab, new LinearLayout.LayoutParams(0, -2, 1));
+            if (fontScale <= 1.3f && widthDp >= 360) {
+                tab.setCompoundDrawablesWithIntrinsicBounds(tabIcons[i], 0, 0, 0);
+                tab.setCompoundDrawablePadding(dp(3));
+                tab.setCompoundDrawableTintList(ColorStateList.valueOf(selected ? Color.WHITE : foreground));
+            }
+            tabs.addView(tab, stackTabs ? new LinearLayout.LayoutParams(-1, -2)
+                : new LinearLayout.LayoutParams(0, -2, fontScale > 1.3f && i == 1 ? 1.5f : 1f));
         }
         root.addView(tabs); space(root, 10);
         LinearLayout languages = row();
@@ -231,14 +239,19 @@ final class TranslatorScreen {
     private Button roundButton(String title, int fill, View.OnClickListener listener) {
         Button v = new Button(activity) {
             @Override protected void onMeasure(int widthSpec, int heightSpec) {
+                setPadding(dp(18), dp(14), dp(18), dp(14));
                 super.onMeasure(widthSpec, heightSpec);
-                // Keep the circle at normal font sizes. With accessibility type, grow vertically
-                // into a pill if necessary, preserving all lines and the full touch target.
-                setMeasuredDimension(getMeasuredWidth(), Math.max(getMeasuredWidth(), getMeasuredHeight()));
+                // Center the icon and text as one group, while letting large text grow the pill.
+                int desiredHeight = getMeasuredHeight();
+                int height = Math.max(getMeasuredWidth(), desiredHeight);
+                int extra = (height - desiredHeight) / 2;
+                setPadding(dp(18), dp(14) + extra, dp(18), dp(14) + extra);
+                super.onMeasure(widthSpec, View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
             }
         };
         styleButton(v, title, fill, Color.WHITE, listener); v.setPadding(dp(18), dp(14), dp(18), dp(14));
-        v.setCompoundDrawablesWithIntrinsicBounds(0, R.drawable.ic_mic, 0, 0); v.setCompoundDrawableTintList(ColorStateList.valueOf(Color.WHITE)); v.setCompoundDrawablePadding(dp(6));
+        android.graphics.drawable.Drawable mic = activity.getDrawable(R.drawable.ic_mic).mutate();
+        mic.setBounds(0, 0, dp(32), dp(32)); v.setCompoundDrawables(null, mic, null, null); v.setCompoundDrawableTintList(ColorStateList.valueOf(Color.WHITE)); v.setCompoundDrawablePadding(dp(6));
         v.setBackground(ripple(fill, 150)); return v;
     }
 }

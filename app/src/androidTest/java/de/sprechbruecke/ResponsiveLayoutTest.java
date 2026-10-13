@@ -30,6 +30,8 @@ public class ResponsiveLayoutTest {
                 androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync();
                 scenario.onActivity(a -> {
                     View root = a.findViewById(R.id.screen);
+                    TextView conversation = a.findViewById(R.id.mode_conversation);
+                    assertEquals("Conversation label must not break inside the word", 1, conversation.getLineCount());
                     float density = a.getResources().getDisplayMetrics().density;
                     int width = a.getResources().getConfiguration().screenWidthDp;
                     float scale = a.getResources().getConfiguration().fontScale;
