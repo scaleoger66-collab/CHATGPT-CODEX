@@ -69,10 +69,11 @@ public class DesignSwitchTest {
     @Test public void conversationButtonsSelectTheirOwnLanguageAndHistorySurvivesThemeChange() throws Exception {
         try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
             screenshot("dialog-before-scroll");
-            try { onView(withId(R.id.polish_mic)).perform(scrollTo(), click()); }
+            onView(withId(R.id.screen)).perform(swipeUp());
+            try { onView(withId(R.id.polish_mic)).perform(click()); }
             catch (RuntimeException e) { screenshot("dialog-scroll-failure"); throw e; }
             onView(withText("Polski · Ausgangstext")).check(matches(withText("Polski · Ausgangstext")));
-            onView(withId(R.id.german_mic)).perform(scrollTo(), click());
+            onView(withId(R.id.german_mic)).perform(click());
             onView(withText("Deutsch · Ausgangstext")).check(matches(withText("Deutsch · Ausgangstext")));
             scenario.onActivity(a -> ((TextView) a.findViewById(R.id.history_text)).setText("DE: Hallo\nPL: Cześć"));
             choose("Design 2 · Nacht & Fokus\nDunkel, startet im Live-Modus");
@@ -92,8 +93,8 @@ public class DesignSwitchTest {
         // Android's test runner uninstalls the app at the end, removing its scoped files.
         // Copy test-only screenshots to a shell-owned folder before that cleanup.
         android.os.ParcelFileDescriptor copy = InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand(
-            "mkdir -p /data/local/tmp/sprechbruecke-screenshots && cp " + new File(folder, name + ".png").getAbsolutePath()
-            + " /data/local/tmp/sprechbruecke-screenshots/" + name + ".png");
+            "sh -c 'mkdir -p /data/local/tmp/sprechbruecke-screenshots && cp " + new File(folder, name + ".png").getAbsolutePath()
+            + " /data/local/tmp/sprechbruecke-screenshots/" + name + ".png'");
         try (java.io.InputStream stream = new android.os.ParcelFileDescriptor.AutoCloseInputStream(copy)) {
             byte[] buffer = new byte[1024]; while (stream.read(buffer) != -1) { /* wait for copy */ }
         }

@@ -16,6 +16,8 @@ for p in Path('app/build/outputs/androidTest-results').rglob('*.xml'):
     except ET.ParseError:
         pass
 for p in sorted(Path('app/build/reports/screenshots').glob('*.png')):
+    if not p.is_file():
+        continue
     data = base64.b64encode(p.read_bytes()).decode('ascii')
     for start in range(0, len(data), 4000):
         print('UI_SCREENSHOT:' + p.stem + ':' + data[start:start+4000])
