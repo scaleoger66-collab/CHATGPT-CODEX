@@ -1,3 +1,15 @@
+# Sprechbrücke 0.6: polnisches Mikrofon offline
+
+Die polnische Aufnahme verwendet jetzt Vosk direkt in der App, unabhängig vom Android-Spracherkennungsdienst. Unter Einstellungen → **Mikrofon: Polnisch offline einrichten** einmalig das Modell laden (52.979.372 Bytes Download; ca. 96 MB entpackt). Gosia, Darkman und Thorsten sind weiterhin ausschließlich Vorlesestimmen; vorhandene Downloads bleiben erhalten. Deutsch verwendet weiterhin die Android-On-Device-Erkennung.
+
+Download wird per SHA-256 geprüft, begrenzt entpackt und erst vollständig installiert freigeschaltet. Abbrechen oder Verlassen der App verwirft den laufenden Download. Die Erkennung verarbeitet maximal 30 Sekunden je Sprachabschnitt. Im Live-Modus folgt nach der Übersetzung der nächste Abschnitt. Aufnahme, Modellinitialisierung und Entpacken laufen außerhalb des UI-Threads. Android-Schrift- und Designfunktionen bleiben verfügbar.
+
+CI prüft Unit-Tests, Lint, ELF-Ausrichtung auf 16 KB, echte polnische Erkennung mit Originalmodell und zwei Piper-Audios bei ausgeschaltetem Emulator-Netz sowie die vorhandenen UI- und Stimmen-Tests. Synthetische Audio-Tests ersetzen keinen Praxistest mit menschlichen Stimmen auf dem Fold 7.
+
+Modell: [Vosk small Polish 0.22](https://alphacephei.com/vosk/models), Apache 2.0. Laufzeit: Vosk Android 0.3.75 und JNA 5.18.1, Apache 2.0. Hinweise liegen in `app/src/main/assets`.
+
+---
+
 # Sprechbrücke – Android 0.5
 
 **Startkorrektur: Sprechbrücke Stimmen 0.2**

@@ -3,6 +3,7 @@ set -uo pipefail
 bash ci/piper-offline-test.sh
 piper_result=$?
 if [ "$piper_result" -ne 0 ]; then exit "$piper_result"; fi
+bash ci/polish-offline-test.sh || exit $?
 # Heavy native model tests can leave the emulator launcher with an ANR dialog.
 # Stop only the unrelated launcher; never dismiss errors from either tested app.
 adb shell am force-stop com.google.android.apps.nexuslauncher

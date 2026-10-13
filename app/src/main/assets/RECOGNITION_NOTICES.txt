@@ -1,0 +1,8 @@
+Polish offline microphone recognition
+Vosk Android 0.3.75: Copyright Alpha Cephei Inc., Apache License 2.0.
+Source: https://github.com/alphacep/vosk-api
+Model: vosk-model-small-pl-0.22, Alpha Cephei, Apache License 2.0.
+https://alphacephei.com/vosk/models
+JNA 5.18.1: distributed under Apache License 2.0 (dual licensed LGPL 2.1 or Apache 2.0).
+https://github.com/java-native-access/jna/tree/5.18.1
+The Apache license is included as APACHE-2.0.txt. Model README is retained after extraction.

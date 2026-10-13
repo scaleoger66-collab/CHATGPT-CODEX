@@ -31,6 +31,10 @@ import android.speech.tts.Voice;
 /** Offline translation; microphone never falls back to a cloud recognizer. */
 public class MainActivity extends Activity implements RecognitionListener {
     private final Handler handler = new Handler(Looper.getMainLooper());
+    private final PolishRecognition polishRecognition = new PolishRecognition();
+    private static final java.util.concurrent.ExecutorService modelDownloads = java.util.concurrent.Executors.newSingleThreadExecutor();
+    private java.util.concurrent.atomic.AtomicBoolean downloadCancelled;
+    private AlertDialog modelDialog;
     private Translator translator;
     private SpeechRecognizer recognizer;
     private TextToSpeech speech;
@@ -111,10 +115,11 @@ public class MainActivity extends Activity implements RecognitionListener {
     }
     private void showSettings() {
         stop(); status.setText("Aufnahme pausiert · Einstellungen");
-        dialog().setTitle("Einstellungen").setItems(new String[]{"Design & Bedienung", "Stimme & Hörprobe", "Sprachmodelle laden / prüfen"}, (d, which) -> {
+        dialog().setTitle("Einstellungen").setItems(new String[]{"Design & Bedienung", "Stimme & Hörprobe", "Textübersetzung: Modelle laden / prüfen", "Mikrofon: Polnisch offline einrichten"}, (d, which) -> {
             if (which == 0) showDesignPicker();
             if (which == 1) showSpeechOptions();
             if (which == 2) download();
+            if (which == 3) showPolishModel();
         }).setNegativeButton("Schließen", null).show();
     }
     private void showDesignPicker() {
@@ -150,6 +155,7 @@ public class MainActivity extends Activity implements RecognitionListener {
         stop();
         boolean modelsWereReady = ready;
         changeSource(german);
+        if (!german && !PolishModel.installed(getFilesDir())) { showPolishModel(); return; }
         if (!modelsWereReady) { status.setText("Bitte unter Einstellungen zuerst die Sprachmodelle laden."); return; }
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, 1); return;
@@ -240,7 +246,7 @@ public class MainActivity extends Activity implements RecognitionListener {
     private void openPiperManager() {
         stop();
         if(!piperInstalled()) {
-            dialog().setTitle("Stimmen-Modul installieren").setMessage("Installiere zusätzlich Sprechbruecke-Stimmen-v0.1.apk aus unserem Download-Paket. Darin kannst du Gosia, Darkman und Thorsten High herunterladen. Danach hier erneut öffnen.").setPositiveButton("OK",null).show(); return;
+            dialog().setTitle("Stimmen-Modul installieren").setMessage("Installiere zusätzlich Sprechbruecke-Stimmen-v0.2.apk aus unserem Download-Paket. Darin kannst du Gosia, Darkman und Thorsten High herunterladen. Danach hier erneut öffnen.").setPositiveButton("OK",null).show(); return;
         }
         refreshSpeechOnResume=true;
         try { startActivity(new Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA).setPackage(PIPER_ENGINE)); }
@@ -363,6 +369,7 @@ public class MainActivity extends Activity implements RecognitionListener {
     }
     private void listen() {
         if (!running || destroyed) return;
+        if (!germanSource) { listenPolish(); return; }
         if (!SpeechRecognizer.isOnDeviceRecognitionAvailable(this)) {
             stop(); status.setText("Dieses Gerät bietet keine Android-Offline-Spracherkennung. Textübersetzung bleibt nutzbar."); return;
         }
@@ -392,10 +399,82 @@ public class MainActivity extends Activity implements RecognitionListener {
         try { recognizer.startListening(intent); }
         catch (SecurityException e) { stop(); status.setText("Mikrofonberechtigung fehlt."); }
     }
+    private void listenPolish() {
+        if (!PolishModel.installed(getFilesDir())) { stop(); showPolishModel(); return; }
+        if (speech != null) speech.stop();
+        listening = true; screen.setRecording(true); status.setText("Polnische Offline-Erkennung wird gestartet …");
+        final long recording = recordings.advance();
+        polishRecognition.start(PolishModel.directory(getFilesDir()), new PolishRecognition.Listener() {
+            private boolean current() { return !destroyed && running && recordings.accepts(recording); }
+            public void ready() { if (current()) status.setText("Höre zu · Polski · offline …"); }
+            public void partial(String text) { if (current() && !text.isEmpty()) input.setText(text); }
+            public void result(String text) {
+                if (!current()) return;
+                listening = false; recordings.advance();
+                if (!text.isEmpty()) { input.setText(text); translate(text, true); }
+                else if (presentation.isLive()) scheduleListen();
+                else { stop(); status.setText("Keine Sprache erkannt. Bitte erneut sprechen."); }
+            }
+            public void error() { if (current()) { stop(); status.setText("Polnische Mikrofon-Erkennung konnte nicht starten. Mikrofonzugriff und freien Speicher prüfen; App bei Bedarf neu starten."); } }
+        });
+    }
+    private void showPolishModel() {
+        stop();
+        if (PolishModel.installed(getFilesDir())) {
+            dialog().setTitle("Polnisches Mikrofon bereit")
+                .setMessage("Vosk Polnisch ist installiert und funktioniert offline. Zum Sprechen ‚Mów po polsku‘ wählen. Gosia und Darkman sind unabhängig davon die Stimmen zum Vorlesen.")
+                .setPositiveButton("OK", null).show(); return;
+        }
+        dialog().setTitle("Polnisch verstehen · offline")
+            .setMessage("Für das Mikrofon wird ein eigenes Erkennungsmodell benötigt: Vosk Polnisch, etwa 50 MB Download. Bitte etwa 250 MB freien Speicher bereithalten. Nach dem Download funktioniert es ohne Internet.\n\nGosia, Darkman und Thorsten sind Vorlesestimmen und bleiben installiert.\n\nModell: Alpha Cephei · vosk-model-small-pl-0.22 · Apache 2.0. Während des Downloads die App geöffnet lassen.")
+            .setPositiveButton("Herunterladen", (d, w) -> downloadPolishModel()).setNegativeButton("Später", null).show();
+    }
+    private void cancelModelDownload() {
+        if (downloadCancelled != null) downloadCancelled.set(true);
+        if (modelDialog != null) { modelDialog.dismiss(); modelDialog = null; }
+    }
+    private void downloadPolishModel() {
+        cancelModelDownload();
+        final java.util.concurrent.atomic.AtomicBoolean cancelled = new java.util.concurrent.atomic.AtomicBoolean();
+        downloadCancelled = cancelled;
+        modelDialog = dialog().setTitle("Polnische Mikrofon-Erkennung")
+            .setMessage("Download startet …").setNegativeButton("Abbrechen", (d, w) -> cancelModelDownload()).create();
+        modelDialog.setCanceledOnTouchOutside(false);
+        modelDialog.setOnCancelListener(d -> cancelModelDownload()); modelDialog.show();
+        final java.io.File files = getFilesDir(), cache = getCacheDir();
+        modelDownloads.execute(() -> {
+            final long[] last = {0};
+            try {
+                if (cancelled.get()) return;
+                PolishModel.install(files, cache, bytes -> {
+                    if (cancelled.get()) throw new java.io.InterruptedIOException("Abgebrochen");
+                    long now = android.os.SystemClock.elapsedRealtime();
+                    if (now - last[0] > 300) {
+                        last[0] = now;
+                        handler.post(() -> { if (!destroyed && !cancelled.get() && modelDialog != null)
+                            modelDialog.setMessage((bytes / 1000000) + " MB geladen · anschließend wird geprüft und entpackt …"); });
+                    }
+                });
+                handler.post(() -> {
+                    if (destroyed || cancelled.get()) return;
+                    modelDialog.dismiss(); modelDialog = null;
+                    status.setText("Polnische Mikrofon-Erkennung offline bereit. Jetzt ‚Mów po polsku‘ antippen.");
+                });
+            } catch (Exception e) {
+                android.util.Log.w("PolishModel", "Model installation failed", e);
+                handler.post(() -> {
+                    if (destroyed || cancelled.get()) return;
+                    modelDialog.dismiss(); modelDialog = null;
+                    status.setText("Download fehlgeschlagen. Internet und freien Speicher prüfen und erneut versuchen.");
+                });
+            }
+        });
+    }
     private void scheduleListen() { handler.postDelayed(() -> { if (running && !listening) listen(); }, 350); }
     private void stop() {
         running = false; listening = false; pendingRecording = false; handler.removeCallbacksAndMessages(null);
         operations.advance(); recordings.advance(); utterances.advance();
+        polishRecognition.cancel();
         if (recognizer != null) { recognizer.cancel(); recognizer.destroy(); recognizer = null; }
         if (speech != null) speech.stop();
         if (screen != null) screen.setRecording(false);
@@ -437,7 +516,7 @@ public class MainActivity extends Activity implements RecognitionListener {
         if (presentation.isLive() && (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT)) { scheduleListen(); return; }
         stop();
         if (error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED || error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE)
-            status.setText("Offline-Sprachpaket fehlt oder wird nicht unterstützt. Bitte Deutsch/Polnisch in den Android-Spracheinstellungen prüfen.");
+            status.setText("Die deutsche Offline-Mikrofon-Erkennung fehlt oder wird von Android nicht unterstützt. Ein Vorlese-Stimmenpaket ersetzt sie nicht.");
         else if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS)
             status.setText("Bitte Mikrofonzugriff in den App-Einstellungen erlauben.");
         else status.setText("Spracherkennung beendet (" + error + "). Bitte erneut starten.");
@@ -461,10 +540,10 @@ public class MainActivity extends Activity implements RecognitionListener {
         state.putString("translation", lastTranslation); state.putString("history", history.getText().toString());
 
     }
-    @Override protected void onPause() { super.onPause(); stop(); }
+    @Override protected void onPause() { super.onPause(); stop(); cancelModelDownload(); }
     @Override protected void onResume() {
         super.onResume();
         if (refreshSpeechOnResume || (piperEnabled() && !speechReady && piperInstalled())) { refreshSpeechOnResume = false; initializeSpeech(); }
     }
-    @Override protected void onDestroy() { destroyed = true; stop(); if (recognizer != null) recognizer.destroy(); if (speech != null) speech.shutdown(); if (translator != null) translator.close(); super.onDestroy(); }
+    @Override protected void onDestroy() { destroyed = true; stop(); polishRecognition.close(); if (recognizer != null) recognizer.destroy(); if (speech != null) speech.shutdown(); if (translator != null) translator.close(); super.onDestroy(); }
 }
