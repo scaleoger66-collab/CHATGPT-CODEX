@@ -2,6 +2,12 @@ package de.sprechbruecke.voices;
 
 import android.content.Context;
 import android.os.ParcelFileDescriptor;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
+import android.speech.tts.Voice;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -41,6 +47,38 @@ public class PiperIntegrationTest {
             try { models.installArchive(voice,archive,()->true); fail("Expected cancellation"); } catch(InterruptedIOException expected) { }
             assertTrue(models.installed(voice));
         }
+        verifyAndroidService(context);
+    }
+    private void verifyAndroidService(Context context) throws Exception {
+        CountDownLatch initialized=new CountDownLatch(1);
+        AtomicInteger initStatus=new AtomicInteger(-99);
+        TextToSpeech speech=new TextToSpeech(context, status -> { initStatus.set(status); initialized.countDown(); }, context.getPackageName());
+        try {
+            assertTrue("TTS service initialization",initialized.await(30,TimeUnit.SECONDS));
+            assertEquals(TextToSpeech.SUCCESS,initStatus.get());
+            for(PiperVoice selected:PiperVoice.ALL) {
+                Voice actual=null;
+                for(Voice candidate:speech.getVoices()) if(candidate.getName().equals(selected.id)) actual=candidate;
+                assertNotNull("Installed voice exposed by Android: "+selected.id,actual);
+                assertFalse(actual.isNetworkConnectionRequired());
+                assertEquals(TextToSpeech.SUCCESS,speech.setVoice(actual));
+                CountDownLatch finished=new CountDownLatch(1);
+                AtomicInteger error=new AtomicInteger(0);
+                speech.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                    public void onStart(String id) {}
+                    public void onDone(String id) { finished.countDown(); }
+                    public void onError(String id) { error.set(1); finished.countDown(); }
+                });
+                File wav=new File(context.getFilesDir(),selected.id+"-android.wav");
+                String phrase=selected.language.equals("pl") ? "Dzień dobry! Jak się masz?" : "Guten Tag! Wie geht es dir?";
+                assertEquals(TextToSpeech.SUCCESS,speech.synthesizeToFile(phrase,new android.os.Bundle(),wav,selected.id));
+                assertTrue("Android synthesis completion: "+selected.id,finished.await(180,TimeUnit.SECONDS));
+                assertEquals("Android synthesis error",0,error.get());
+                assertTrue("Android produced PCM audio",wav.length()>44100);
+                copyToReports(wav);
+                System.out.println("PIPER_ANDROID_SERVICE_OK "+selected.id);
+            }
+        } finally { speech.shutdown(); }
     }
     private void copyToReports(File wav) throws Exception {
         for(String command:new String[]{"mkdir -p /data/local/tmp/sprechbruecke-audio", "cp "+wav.getAbsolutePath()+" /data/local/tmp/sprechbruecke-audio/"+wav.getName()}) {

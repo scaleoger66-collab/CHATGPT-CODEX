@@ -2,7 +2,7 @@
 set -uo pipefail
 bash ci/piper-offline-test.sh
 piper_result=$?
-gradle --no-daemon connectedDebugAndroidTest
+gradle --no-daemon :app:connectedDebugAndroidTest
 test_result=$?
 if [ "$piper_result" -ne 0 ]; then test_result=$piper_result; fi
 mkdir -p app/build/reports/display-matrix/baseline
@@ -15,7 +15,7 @@ for configuration in '1080x2520 480 1.0' '1080x2520 480 2.0' '1968x2184 420 1.0'
   adb shell wm density "$display_density"
   adb shell settings put system font_scale "$font_scale"
   sleep 2
-  gradle --no-daemon connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=de.sprechbruecke.ResponsiveLayoutTest --rerun-tasks
+  gradle --no-daemon :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=de.sprechbruecke.ResponsiveLayoutTest --rerun-tasks
   result=$?
   report_dir="app/build/reports/display-matrix/${display_size}-${display_density}-font-${font_scale}"
   mkdir -p "$report_dir"
