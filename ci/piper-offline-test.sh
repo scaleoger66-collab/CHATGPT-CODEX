@@ -21,7 +21,8 @@ for archive in .voice-models/*.tar.bz2; do
   name=$(basename "$archive")
   adb shell "run-as de.sprechbruecke.voices sh -c 'cat > cache/$name'" < "$archive"
 done
-trap 'adb shell svc wifi enable; adb shell svc data enable' EXIT
+trap 'adb logcat -d > app/build/reports/piper/logcat.txt; tail -n 250 app/build/reports/piper/logcat.txt; adb shell svc wifi enable; adb shell svc data enable' EXIT
+adb logcat -c
 adb shell svc wifi disable
 adb shell svc data disable
 adb shell am instrument -w -r -e requirePiperModels true -e class de.sprechbruecke.voices.PiperIntegrationTest de.sprechbruecke.voices.test/androidx.test.runner.AndroidJUnitRunner | tee app/build/reports/piper/instrumentation.txt
